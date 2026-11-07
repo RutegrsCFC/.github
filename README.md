@@ -10,6 +10,8 @@ The organization profile for **Rutgers Chinese Finance Club · 罗格斯华人�
 python3 scripts/build_profile_assets.py profile/assets scripts/logo360.png
 ```
 
-Every SVG is drawn at 846px wide (the README column on desktop) and is self-contained (system fonts, embedded logo), because GitHub shows README images
-through `<img>`, which blocks external fonts and images. Section images come in `-light` and
-`-dark` variants; the README picks one with `<picture>` and `prefers-color-scheme`.
+Every SVG is drawn at 846px wide (the README column on desktop) and is self-contained (system
+fonts, embedded logo), because GitHub shows README images through `<img>`, which blocks external
+fonts and images. Each image comes in `-light` and `-dark`; the README adds both with the
+`#gh-light-mode-only` / `#gh-dark-mode-only` fragments, so GitHub shows the one matching the
+viewer's GitHub theme.

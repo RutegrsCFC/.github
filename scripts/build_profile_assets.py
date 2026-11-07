@@ -3,11 +3,15 @@
 Design notes
 - Every SVG is drawn at 846px wide, the width GitHub gives an org README on desktop,
   so font sizes here are the sizes people actually see.
-- Flat palette from the RCFC logo and F2026 deck: ink #1f252e, ivory paper, and the
+- Flat palette from the RCFC logo and F2026 deck: ink #1f252e, ivory text, and the
   logo coral used only for small marks. One serif for display, one sans for detail.
+- Every block is its own panel, in a -dark (ink) and a -light (ivory paper) variant.
+  The README picks one with GitHub's #gh-dark-mode-only / #gh-light-mode-only image
+  fragments, which follow the viewer's GitHub theme setting. (<picture> with
+  prefers-color-scheme follows the operating system instead, so it mismatches for
+  anyone whose GitHub theme differs from their system theme.)
 - Self-contained (no external fonts or images): GitHub shows README images through
-  <img>, which blocks external resources. Each themed asset has -dark and -light
-  variants, picked in the README with <picture> and prefers-color-scheme.
+  <img>, which blocks external resources.
 - Motion is slow and quiet: staggered reveals, a coral hairline that draws itself,
   contour lines (the deck's background motif) that slowly change shape, and a
   focus-area ticker. All of it switches off under prefers-reduced-motion.
@@ -37,17 +41,15 @@ EXPO = "cubic-bezier(0.16, 1, 0.3, 1)"
 THEMES = {
     "dark": dict(
         panel="#1f252e", on_panel="#f6f3ee", on_panel_muted="#aeb1ba",
-        ink="#f0ede7", muted="#aab0bd", subtle="#7c8395",
-        line="rgba(240,237,231,0.13)", contour="rgba(246,243,238,0.075)",
-        coral="#ff6b63", panel_border="rgba(246,243,238,0.08)",
-        btn_bg="#f6f3ee", btn_ink="#1f252e",
+        ink="#f6f3ee", muted="#b4b8c2", subtle="#8a90a2",
+        line="rgba(246,243,238,0.12)", contour="rgba(246,243,238,0.075)",
+        coral="#ff6b63", panel_border="rgba(246,243,238,0.08)", btn_border="rgba(246,243,238,0.14)",
     ),
     "light": dict(
         panel="#f4f0e8", on_panel="#1f252e", on_panel_muted="#5a5f6c",
-        ink="#1f252e", muted="#4c5262", subtle="#80869a",
-        line="rgba(31,37,46,0.13)", contour="rgba(31,37,46,0.085)",
-        coral="#d9443f", panel_border="rgba(31,37,46,0.07)",
-        btn_bg="#1f252e", btn_ink="#f6f3ee",
+        ink="#1f252e", muted="#4c5262", subtle="#7c8296",
+        line="rgba(31,37,46,0.12)", contour="rgba(31,37,46,0.085)",
+        coral="#d9443f", panel_border="rgba(31,37,46,0.07)", btn_border="rgba(31,37,46,0.14)",
     ),
 }
 
@@ -138,6 +140,19 @@ def contours(cx, cy, n, r0, step, stroke, dur=16, sx=1.25):
             f'values="{a};{b};{a}" keyTimes="0;0.5;1" calcMode="spline" '
             f'keySplines="0.45 0 0.55 1;0.45 0 0.55 1"/></path>')
     return f'<g fill="none" stroke="{stroke}" stroke-width="1">{"".join(paths)}</g>'
+
+
+def panel(H, body, t, label):
+    return f"""
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="{label}">
+<style>{style()}</style>
+<defs><clipPath id="f"><rect width="{W}" height="{H}" rx="20"/></clipPath></defs>
+<g clip-path="url(#f)">
+  <rect width="{W}" height="{H}" fill="{t['panel']}"/>
+  {body}
+  <rect x="0.5" y="0.5" width="{W - 1}" height="{H - 1}" rx="19.5" fill="none" stroke="{t['panel_border']}"/>
+</g>
+</svg>"""
 
 
 # --------------------------------------------------------------------------- hero
@@ -234,7 +249,7 @@ VISION_ZH = "通过跨境教育、专业洞见和技能实践，帮助罗格斯�
 def mission(t):
     col = 236
     width = X1 - col
-    blocks, y, i = [], 0, 0
+    blocks, y, i = [], 12, 0
     for label, zh, en_text, zh_text in [("Mission", "使命", MISSION, MISSION_ZH),
                                         ("Vision", "愿景", VISION, VISION_ZH)]:
         en_l = wrap(en_text, 22, width, 0.47)
@@ -244,7 +259,7 @@ def mission(t):
         zh_y = en_y + 34 * (len(en_l) - 1) + 40
         y = zh_y + 25 * (len(zh_l) - 1) + 44
         blocks.append(f"""
-  <rect x="0" y="{top}" width="{W}" height="1" fill="{t['line']}" class="grow" {d(0.05 + i * 0.2)}/>
+  {f'<rect x="{X0}" y="{top}" width="{X1 - X0}" height="1" fill="{t["line"]}" class="grow" {d(0.05 + i * 0.2)}/>' if i else ''}
   <g class="rv" {d(0.15 + i * 0.2)}>
     <circle cx="{X0 + 3}" cy="{top + 52}" r="3" fill="{t['coral']}"/>
     <text x="{X0 + 16}" y="{top + 58}" class="serif" font-size="20" fill="{t['ink']}">{label}</text>
@@ -253,13 +268,8 @@ def mission(t):
     <text y="{zh_y}" class="cjk" font-size="14.5" fill="{t['muted']}">{tsp(zh_l, col, 25)}</text>
   </g>""")
         i += 1
-    H = y + 1
-    return f"""
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Mission: {esc(MISSION)} Vision: {esc(VISION)}">
-<style>{style()}</style>
-{''.join(blocks)}
-<rect x="0" y="{H - 1}" width="{W}" height="1" fill="{t['line']}" class="grow" {d(0.45)}/>
-</svg>"""
+    H = y + 8
+    return panel(H, "".join(blocks), t, f"Mission: {esc(MISSION)} Vision: {esc(VISION)}")
 
 
 # --------------------------------------------------------------------------- pillars
@@ -268,6 +278,9 @@ PILLARS = [
     ("Networking", "交流会", [("Alumni Stories", "校友分享"), ("Company Tours", "行业参观"), ("Industry Expert Talks", "行业专家分享")]),
     ("Practice", "实践", [("Equity Research", "股票分析"), ("Certificates", "证书"), ("Exchange Programs", "交换项目")]),
 ]
+
+
+OFF = 12
 
 
 def pillars(t):
@@ -291,24 +304,20 @@ def pillars(t):
     <text x="{x:.0f}" y="140" class="serif" font-size="26" letter-spacing="-0.3" fill="{t['ink']}">{title}</text>
     <text x="{x:.0f}" y="166" class="cjks" font-size="14" letter-spacing="3" fill="{t['subtle']}">{zh}</text>
   </g>{''.join(rows)}""")
-    H = 210 + 2 * 56 + 52
-    return f"""
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="What we do. FinTech and AI: Chinese AI workshop, financial engineering, student AI toolkit. Networking: alumni stories, company tours, industry expert talks. Practice: equity research, certificates, exchange programs.">
-<style>{style()}</style>
-<g class="rv" {d(0.05)}>
-  <circle cx="{X0 + 3}" cy="34" r="3" fill="{t['coral']}"/>
-  <text x="{X0 + 16}" y="40" class="serif" font-size="20" fill="{t['ink']}">What we do <tspan class="cjks" dx="8" font-size="14" letter-spacing="4" fill="{t['subtle']}">我们做什么</tspan></text>
-</g>
-{''.join(cols)}
-<rect x="0" y="{H - 1}" width="{W}" height="1" fill="{t['line']}" class="grow" {d(0.6)}/>
-</svg>"""
+    H = 210 + 2 * 56 + 56
+    head = f"""<g class="rv" {d(0.05)}>
+  <circle cx="{X0 + 3}" cy="{OFF + 46}" r="3" fill="{t['coral']}"/>
+  <text x="{X0 + 16}" y="{OFF + 52}" class="serif" font-size="20" fill="{t['ink']}">What we do <tspan class="cjks" dx="8" font-size="14" letter-spacing="4" fill="{t['subtle']}">我们做什么</tspan></text>
+</g>"""
+    return panel(H + OFF, f'{head}<g transform="translate(0 {OFF})">{"".join(cols)}</g>', t,
+                 "What we do. FinTech and AI: Chinese AI workshop, financial engineering, student AI toolkit. Networking: alumni stories, company tours, industry expert talks. Practice: equity research, certificates, exchange programs.")
 
 
 # --------------------------------------------------------------------------- join
 def join(t):
     H = 250
     return f"""
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Join the founding cohort. China-focused, bilingual, and open to every Rutgers student. No finance background required.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Join membership. China-focused, bilingual, and open to every Rutgers student. No finance background required.">
 <style>{style()}</style>
 <defs>
   <clipPath id="f"><rect width="{W}" height="{H}" rx="20"/></clipPath>
@@ -319,8 +328,8 @@ def join(t):
   <rect width="{W}" height="{H}" fill="{t['panel']}"/>
   <g mask="url(#jm)">{contours(760, 230, 12, 30, 18, t['contour'], dur=20)}</g>
   <text class="sans rv" x="{X0}" y="66" font-size="11.5" letter-spacing="2.4" fill="{t['coral']}" {d(0.05)}>MEMBERSHIP · 会员招募</text>
-  <text class="serif rv" x="{X0 - 2}" y="122" font-size="36" letter-spacing="-0.6" fill="{t['on_panel']}" {d(0.15)}>Join the founding cohort<tspan fill="{t['coral']}">.</tspan></text>
-  <text class="cjks rv" x="{X0}" y="158" font-size="17" letter-spacing="3" fill="{t['on_panel']}" fill-opacity="0.75" {d(0.25)}>加入创始成员</text>
+  <text class="serif rv" x="{X0 - 2}" y="122" font-size="36" letter-spacing="-0.6" fill="{t['on_panel']}" {d(0.15)}>Join membership<tspan fill="{t['coral']}">.</tspan></text>
+  <text class="cjks rv" x="{X0}" y="158" font-size="17" letter-spacing="3" fill="{t['on_panel']}" fill-opacity="0.75" {d(0.25)}>加入会员</text>
   <text class="sans rv" x="{X0}" y="198" font-size="14.5" fill="{t['on_panel_muted']}" {d(0.35)}>China-focused · Bilingual · Open to every Rutgers student, no finance background required.</text>
   <rect x="0.5" y="0.5" width="{W - 1}" height="{H - 1}" rx="19.5" fill="none" stroke="{t['panel_border']}"/>
 </g>
@@ -331,11 +340,12 @@ def join(t):
 def button(label, zh, width, t, primary=False):
     H = 44
     if primary:
-        body = f'<rect width="{width}" height="{H}" rx="22" fill="{t["btn_bg"]}"/>'
-        ink, sub = t["btn_ink"], t["btn_ink"]
+        body = f'<rect width="{width}" height="{H}" rx="22" fill="#f05a52"/>'
+        ink, sub, arrow = "#ffffff", "#ffffff", "#ffffff"
     else:
-        body = f'<rect x="0.5" y="0.5" width="{width - 1}" height="{H - 1}" rx="21.5" fill="none" stroke="{t["line"]}"/>'
-        ink, sub = t["ink"], t["subtle"]
+        body = (f'<rect width="{width}" height="{H}" rx="22" fill="{t["panel"]}"/>'
+                f'<rect x="0.5" y="0.5" width="{width - 1}" height="{H - 1}" rx="21.5" fill="none" stroke="{t["btn_border"]}"/>')
+        ink, sub, arrow = t["ink"], t["subtle"], t["coral"]
     extra = """
   .nudge { animation: nudge 3.2s cubic-bezier(0.65,0,0.35,1) 1.2s infinite; }
   @keyframes nudge { 0%, 70%, 100% { transform: none; } 82% { transform: translateX(4px); } }
@@ -345,7 +355,7 @@ def button(label, zh, width, t, primary=False):
 <style>{style(extra)}</style>
 {body}
 <text x="22" y="27.5" class="sans" font-size="14.5" font-weight="600" fill="{ink}">{label}<tspan class="cjk" dx="7" font-size="12.5" font-weight="400" fill="{sub}" fill-opacity="0.7">{zh}</tspan></text>
-<g class="{'nudge' if primary else ''}"><path d="M{width - 34} 22 H{width - 22} M{width - 27} 17 L{width - 22} 22 L{width - 27} 27" fill="none" stroke="{t['coral']}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></g>
+<g class="{'nudge' if primary else ''}"><path d="M{width - 34} 22 H{width - 22} M{width - 27} 17 L{width - 22} 22 L{width - 27} 27" fill="none" stroke="{arrow}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></g>
 </svg>"""
 
 
@@ -354,7 +364,7 @@ for name, t in THEMES.items():
     write(f"mission-{name}.svg", mission(t))
     write(f"pillars-{name}.svg", pillars(t))
     write(f"join-{name}.svg", join(t))
-    write(f"btn-join-{name}.svg", button("Become a Member", "成为会员", 244, t, primary=True))
+    write(f"btn-join-{name}.svg", button("Become a Member", "成为会员", 262, t, primary=True))
     write(f"btn-site-{name}.svg", button("Website", "官网", 158, t))
     write(f"btn-linkedin-{name}.svg", button("LinkedIn", "领英", 164, t))
 print("ok", len(list(OUT.iterdir())), "files")

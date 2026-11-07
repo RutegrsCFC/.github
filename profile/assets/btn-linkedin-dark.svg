@@ -19,7 +19,7 @@
     .rv, .fi { opacity: 1; } .grow { transform: none; } .dr { stroke-dashoffset: 0; }
   }
 </style>
-<rect x="0.5" y="0.5" width="163" height="43" rx="21.5" fill="none" stroke="rgba(240,237,231,0.13)"/>
-<text x="22" y="27.5" class="sans" font-size="14.5" font-weight="600" fill="#f0ede7">LinkedIn<tspan class="cjk" dx="7" font-size="12.5" font-weight="400" fill="#7c8395" fill-opacity="0.7">领英</tspan></text>
+<rect width="164" height="44" rx="22" fill="#1f252e"/><rect x="0.5" y="0.5" width="163" height="43" rx="21.5" fill="none" stroke="rgba(246,243,238,0.14)"/>
+<text x="22" y="27.5" class="sans" font-size="14.5" font-weight="600" fill="#f6f3ee">LinkedIn<tspan class="cjk" dx="7" font-size="12.5" font-weight="400" fill="#8a90a2" fill-opacity="0.7">领英</tspan></text>
 <g class=""><path d="M130 22 H142 M137 17 L142 22 L137 27" fill="none" stroke="#ff6b63" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></g>
 </svg>
