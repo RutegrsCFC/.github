@@ -17,6 +17,8 @@ Design notes
   activity ticker. All of it switches off under prefers-reduced-motion.
 """
 import base64
+import hashlib
+import re
 import math
 import sys
 from pathlib import Path
@@ -54,8 +56,21 @@ THEMES = {
 }
 
 
+WRITTEN = {}
+
+
 def write(name, svg):
-    (OUT / name).write_text(svg.strip() + "\n", encoding="utf-8")
+    """Write the asset under a content-hashed name (hero-dark.1a2b3c4d.svg).
+
+    GitHub serves README images from raw.githubusercontent.com with a 5-minute cache
+    and drops query strings on the way, so a new file name is the only reliable way
+    to make browsers fetch an updated image.
+    """
+    body = svg.strip() + "\n"
+    stem = name[:-4]
+    hashed = f"{stem}.{hashlib.sha1(body.encode()).hexdigest()[:8]}.svg"
+    (OUT / hashed).write_text(body, encoding="utf-8")
+    WRITTEN[stem] = hashed
 
 
 def esc(s):
@@ -382,4 +397,11 @@ for name, t in THEMES.items():
     write(f"btn-join-{name}.svg", button("Become a Member", "成为会员", 262, t, primary=True))
     write(f"btn-site-{name}.svg", button("Website", "官网", 158, t))
     write(f"btn-linkedin-{name}.svg", button("LinkedIn", "领英", 164, t))
-print("ok", len(list(OUT.iterdir())), "files")
+# Point profile/README.md at the new file names.
+readme = OUT.parent / "README.md"
+if readme.exists():
+    text = readme.read_text(encoding="utf-8")
+    for stem, hashed in WRITTEN.items():
+        text = re.sub(rf"assets/{re.escape(stem)}(\.[0-9a-f]{{8}})?\.svg(\?v=\d+)?", f"assets/{hashed}", text)
+    readme.write_text(text, encoding="utf-8")
+print("ok", len(WRITTEN), "assets")
