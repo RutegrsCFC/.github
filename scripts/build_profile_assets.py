@@ -13,8 +13,8 @@ Design notes
 - Self-contained (no external fonts or images): GitHub shows README images through
   <img>, which blocks external resources.
 - Motion is slow and quiet: staggered reveals, a coral hairline that draws itself,
-  contour lines (the deck's background motif) that slowly change shape with coral
-  lights running along them, and an activity ticker. All of it switches off under prefers-reduced-motion.
+  contour lines (the deck's background motif) that slowly change shape, and an
+  activity ticker. All of it switches off under prefers-reduced-motion.
 """
 import base64
 import math
@@ -122,9 +122,9 @@ def ring(cx, cy, r, phase, k, sx=1.25, pts=60):
     out = []
     for i in range(pts):
         a = 2 * math.pi * i / pts
-        w = (1 + 0.075 * math.sin(3 * a + phase + k * 0.21)
-             + 0.045 * math.sin(5 * a - 1.6 * phase + k * 0.13)
-             + 0.018 * math.sin(8 * a + k * 0.37))
+        w = (1 + 0.13 * math.sin(3 * a + phase + k * 0.21)
+             + 0.07 * math.sin(5 * a - 1.6 * phase + k * 0.13)
+             + 0.03 * math.sin(8 * a + 0.7 * phase + k * 0.37))
         out.append(f"{cx + r * w * math.cos(a) * sx:.1f},{cy + r * w * math.sin(a):.1f}")
     return "M" + " L".join(out) + "Z"
 
@@ -155,41 +155,6 @@ def panel(H, body, t, label):
 </svg>"""
 
 
-# --------------------------------------------------------------------------- flowing coral line
-def strand(cx, cy, r, k, length, dur, reverse=False, width=1.4, glow=True, opacity=1.0, begin=0.0, morph=16):
-    """A coral light running along one morphing contour ring.
-
-    The head is bright and the tail fades out: several copies of the same dash,
-    each a little longer and fainter, all aligned at the head. pathLength="1000"
-    keeps the dash units fixed while the ring changes shape, so the loop is seamless.
-    """
-    a, b = ring(cx, cy, r, 0.4, k), ring(cx, cy, r, 2.2, k)
-    shape = (f'<animate attributeName="d" dur="{morph}s" repeatCount="indefinite" values="{a};{b};{a}" '
-             f'keyTimes="0;0.5;1" calcMode="spline" keySplines="0.45 0 0.55 1;0.45 0 0.55 1"/>')
-    sign = 1 if reverse else -1
-    layers = []
-    steps = 7
-    for i in range(steps):
-        frac = (i + 1) / steps                     # 1/7 .. 1 of the full tail
-        seg = length * frac
-        lead = length - seg                        # shift so every copy ends at the head
-        op = opacity * (0.95 if i == 0 else 0.16)
-        w = width * (1.35 - 0.45 * frac)
-        o0 = -lead if not reverse else 0.0       # moving backwards, the head is the dash start
-        layers.append(
-            f'<path d="{a}" pathLength="1000" fill="none" stroke-width="{w:.2f}" stroke-linecap="round" '
-            f'stroke-opacity="{op:.2f}" stroke-dasharray="{seg:.1f} {1000 - seg:.1f}" stroke-dashoffset="{o0:.1f}">{shape}'
-            f'<animate attributeName="stroke-dashoffset" from="{o0:.1f}" to="{o0 + sign * 1000:.1f}" dur="{dur}s" begin="{begin}s" repeatCount="indefinite"/></path>')
-    halo = ""
-    if glow:
-        hs = length * 0.18
-        h0 = -(length - hs) if not reverse else 0.0
-        halo = (f'<path d="{a}" pathLength="1000" fill="none" stroke-width="{width * 5:.1f}" stroke-linecap="round" '
-                f'stroke-opacity="{0.35 * opacity:.2f}" filter="url(#soft)" stroke-dasharray="{hs:.1f} {1000 - hs:.1f}" stroke-dashoffset="{h0:.1f}">{shape}'
-                f'<animate attributeName="stroke-dashoffset" from="{h0:.1f}" to="{h0 + sign * 1000:.1f}" dur="{dur}s" begin="{begin}s" repeatCount="indefinite"/></path>')
-    return halo + "".join(layers)
-
-
 # --------------------------------------------------------------------------- hero
 def hero(t):
     logo = base64.b64encode(LOGO.read_bytes()).decode()
@@ -199,10 +164,6 @@ def hero(t):
   .fi { opacity: 0; animation: fi 3s ease .2s forwards; }
   @keyframes fi { to { opacity: 1; } }
 """
-    lines = (strand(cx, cy, 22 + 9 * 16, 9, 260, 13, width=1.5)
-             + strand(cx, cy, 22 + 5 * 16, 5, 170, 17, reverse=True, width=1.1, glow=False, opacity=0.75, begin=-4)
-             + strand(cx, cy, 22 + 13 * 16, 13, 300, 23, width=1.2, glow=False, opacity=0.55, begin=-9)
-             + strand(cx, cy, 22 + 2 * 16, 2, 140, 11, reverse=True, width=1.0, glow=False, opacity=0.5, begin=-2))
     return f"""
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-labelledby="t">
 <title id="t">Rutgers Chinese Finance Club — Bridging Western finance and Chinese markets. 连接西方金融与中国市场。</title>
@@ -214,13 +175,11 @@ def hero(t):
     <stop offset="0" stop-color="#fff"/><stop offset="0.6" stop-color="#fff" stop-opacity="0.75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
   </radialGradient>
   <mask id="rm"><rect width="{W}" height="{H}" fill="url(#rf)"/></mask>
-  <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
 </defs>
 <g clip-path="url(#f)">
   <rect width="{W}" height="{H}" fill="{t['panel']}"/>
   <g mask="url(#rm)" class="fi">
     {contours(cx, cy, 16, 22, 16, t['contour'])}
-    <g stroke="{t['coral']}">{lines}</g>
   </g>
 
   <g class="rv" {d(0.05)}>
@@ -241,34 +200,30 @@ def hero(t):
 
 
 # --------------------------------------------------------------------------- activity ticker
-# Real activities from the F2026 activity map and core pillars, each with its format.
+# Only activities from the F2026 activity map. Keep out topics the club does not
+# actually run (compliance, M&A, policy and the like).
 ACTIVITIES = [
-    ("WORKSHOP", "Chinese AI Workshop", "国产大模型工坊"),
-    ("TALK", "Alumni Stories", "校友分享"),
-    ("TOUR", "Company Tours", "行业参观"),
-    ("PRACTICE", "Equity Research", "股票分析"),
-    ("ROUNDTABLE", "Policy &amp; Trade Roundtables", "政策与贸易圆桌"),
-    ("TALK", "Industry Expert Analysis", "行业专家分享"),
-    ("WORKSHOP", "Financial Engineering", "金融工程"),
-    ("PROGRAM", "Exchange Programs", "交换项目"),
-    ("CERTIFICATE", "Professional Certificates", "证书"),
-    ("SHARE", "Career Opportunities", "机会分享"),
+    ("Chinese AI Workshop", "国产大模型工坊"), ("Financial Engineering", "金融工程"),
+    ("Student AI Toolkit", "学生 AI 福利与经验"), ("Alumni Stories", "校友分享"),
+    ("Career Opportunities", "机会分享"), ("Company Tours", "行业参观"),
+    ("Industry Expert Talks", "行业专家分享"), ("Equity Research", "股票分析"),
+    ("Certificates", "证书"), ("Exchange Programs", "交换项目"),
 ]
 
 
 def ticker(t):
     H = 64
     x, items = 0, []
-    for tag, en, zh in ACTIVITIES:
-        tw = est(tag, 10.5, 0.66) + 1.6 * len(tag) + 18
-        ew = est(en.replace("&amp;", "&"), 15, 0.56)
+    for en, zh in ACTIVITIES:
+        ew = est(en, 15, 0.5)
         zw = est(zh, 12.5)
+        # One <text> per item so the browser lays out the English, Chinese and dot with real
+        # glyph widths; only the start of each item relies on the width estimate.
         items.append(
-            f'<rect x="{x:.0f}" y="-15" width="{tw:.0f}" height="20" rx="10" fill="none" stroke="{t["coral"]}" stroke-opacity="0.55"/>'
-            f'<text x="{x + tw / 2:.0f}" y="-1.5" text-anchor="middle" class="sans" font-size="10.5" letter-spacing="1.6" fill="{t["coral"]}">{tag}</text>'
-            f'<text x="{x + tw + 12:.0f}" y="0" class="serif" font-size="15" fill="{t["on_panel"]}">{en}</text>'
-            f'<text x="{x + tw + 12 + ew + 8:.0f}" y="-0.5" class="cjk" font-size="12.5" fill="{t["on_panel_muted"]}">{zh}</text>')
-        x += tw + 12 + ew + 8 + zw + 44
+            f'<text x="{x:.0f}" y="0" class="serif" font-size="15" fill="{t["on_panel"]}">{en}'
+            f'<tspan dx="10" class="cjk" font-size="12.5" fill="{t["on_panel_muted"]}">{zh}</tspan>'
+            f'<tspan dx="22" dy="-3" class="sans" font-size="6.5" fill="{t["coral"]}">●</tspan></text>')
+        x += ew + 10 + zw + 20 + 8 + 30
     period = round(x)
     row = "".join(items)
     extra = f"""
@@ -276,7 +231,7 @@ def ticker(t):
   @keyframes run {{ to {{ transform: translateX(-{period}px); }} }}
 """
     return f"""
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Activities: {esc(', '.join(en.replace('&amp;', '&') for _, en, _ in ACTIVITIES))}">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Activities: {esc(', '.join(en for en, _ in ACTIVITIES))}">
 <style>{style(extra)}</style>
 <defs>
   <clipPath id="f"><rect width="{W}" height="{H}" rx="20"/></clipPath>
