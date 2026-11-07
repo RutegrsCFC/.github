@@ -64,5 +64,5 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/footer-dark.svg">
-  <img src="assets/footer-light.svg" width="100%" alt="Bridging Cultures, Advancing Careers: Empowering Global Chinese Excellence in Finance. © 2026 Rutgers Chinese Finance Club · 罗格斯华人金融社团">
+  <img src="assets/footer-light.svg" width="100%" alt="Bridging Cultures, Advancing Careers: Empowering Global Excellence in Finance. © 2026 Rutgers Chinese Finance Club · 罗格斯华人金融社团">
 </picture>

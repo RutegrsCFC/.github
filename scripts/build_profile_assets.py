@@ -406,7 +406,7 @@ def footer(t):
   @media (prefers-reduced-motion: reduce) { .draw { stroke-dashoffset: 0; } }
 """)
     return f"""
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 300" width="1280" height="300" role="img" aria-label="Bridging Cultures, Advancing Careers: Empowering Global Chinese Excellence in Finance.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 300" width="1280" height="300" role="img" aria-label="Bridging Cultures, Advancing Careers: Empowering Global Excellence in Finance.">
 <style>{css}</style>
 <defs><linearGradient id="l" x1="0" x2="1">
   <stop offset="0" stop-color="{t['brand']}" stop-opacity="0"/><stop offset="0.5" stop-color="{t['brand_ink']}" stop-opacity="0.7"/>
@@ -415,7 +415,7 @@ def footer(t):
 <path d="{line}" fill="none" stroke="url(#l)" stroke-width="2" class="draw"/>
 <circle cx="1276" cy="24" r="4" fill="{t['gold']}" class="blink"/>
 <text x="640" y="176" text-anchor="middle" class="sans" font-size="34" font-weight="700" letter-spacing="-0.8" fill="{t['ink']}">Bridging Cultures, Advancing Careers</text>
-<text x="640" y="214" text-anchor="middle" class="sans" font-size="19" fill="{t['muted']}">Empowering Global Chinese Excellence in Finance.</text>
+<text x="640" y="214" text-anchor="middle" class="sans" font-size="19" fill="{t['muted']}">Empowering Global Excellence in Finance.</text>
 <text x="640" y="248" text-anchor="middle" class="cjk" font-size="17" letter-spacing="4" fill="{t['subtle']}">跨越文化 · 驱动未来</text>
 <text x="640" y="288" text-anchor="middle" class="mono" font-size="12" letter-spacing="3" fill="{t['subtle']}">© 2026 RUTGERS CHINESE FINANCE CLUB · <tspan class="cjk" letter-spacing="1">罗格斯华人金融社团</tspan></text>
 </svg>"""
