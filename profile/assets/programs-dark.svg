@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 520" width="1280" height="520" role="img" aria-label="Programs: Skill Advancement Workshops; Engage with Industry Leaders; Build an Exclusive Community">
+<style>
+  .sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif; }
+  .cjk { font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', 'Source Han Sans SC', sans-serif; }
+  .mono { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace; }
+  
+  .card { opacity: 0; animation: up 1s cubic-bezier(0.22,1,0.28,1) forwards; }
+  .c0 { animation-delay: .05s; } .c1 { animation-delay: .2s; } .c2 { animation-delay: .35s; }
+  @keyframes up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  .sweep { animation: sweep 6s ease-in-out infinite; }
+  @keyframes sweep { 0%,100% { transform: translateX(0); } 50% { transform: translateX(208px); } }
+  @media (prefers-reduced-motion: reduce) { .card { opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+<defs><linearGradient id="accent" x1="0" x2="1">
+  <stop offset="0" stop-color="#cc0033" stop-opacity="0"/><stop offset="0.5" stop-color="#ff3d63"/>
+  <stop offset="1" stop-color="#cc0033" stop-opacity="0"/></linearGradient></defs>
+
+  <g>
+    <rect x="0.5" y="0.5" width="399" height="519" rx="22" fill="#0e0e12" stroke="rgba(255,255,255,0.09)"/>
+    <rect x="36" y="0" width="120" height="2" fill="url(#accent)" class="sweep"/>
+    <rect x="36" y="40" width="72" height="72" rx="16" fill="rgba(204,0,51,0.12)" stroke="rgba(255,255,255,0.09)"/>
+    <g transform="translate(48 52)" fill="none" stroke="#ff3d63" stroke-width="2.2" stroke-linejoin="round"><rect x="4" y="8" width="40" height="28" rx="4"/><path d="M16 42h16M24 36v6"/>
+      <path d="M12 28v-6M12 18v-2M20 28v-10M28 28v-4M28 20v-4M36 28v-12" stroke-linecap="round"/></g>
+    <text x="364" y="68" text-anchor="end" class="mono" font-size="15" letter-spacing="3" fill="#8a8a97">01</text>
+    <text y="168" class="sans" font-size="29" font-weight="700" letter-spacing="-0.6" fill="#f4f4f6"><tspan x="36" dy="0">Skill Advancement</tspan><tspan x="36" dy="38">Workshops</tspan></text>
+    <text x="36" y="246" class="cjk" font-size="21" font-weight="500" letter-spacing="2" fill="#ff3d63">技能进阶工作坊</text>
+    <rect x="36" y="270" width="328" height="1" fill="rgba(255,255,255,0.09)"/>
+    <text y="314" class="sans" font-size="19" fill="#c3c3cd"><tspan x="36" dy="0">Bloomberg Terminal, BMC and ESG</tspan><tspan x="36" dy="30">certifications, and hands-on work</tspan><tspan x="36" dy="30">with AI tools in finance.</tspan></text>
+    <text y="430" class="cjk" font-size="17" fill="#8a8a97"><tspan x="36" dy="0">彭博终端、BMC 与 ESG 认证，</tspan><tspan x="36" dy="28">以及 AI 工具在金融中的实操。</tspan></text>
+  </g>
+  <g>
+    <rect x="440.5" y="0.5" width="399" height="519" rx="22" fill="#0e0e12" stroke="rgba(255,255,255,0.09)"/>
+    <rect x="476" y="0" width="120" height="2" fill="url(#accent)" class="sweep"/>
+    <rect x="476" y="40" width="72" height="72" rx="16" fill="rgba(204,0,51,0.12)" stroke="rgba(255,255,255,0.09)"/>
+    <g transform="translate(488 52)" fill="none" stroke="#ff3d63" stroke-width="2.2" stroke-linejoin="round"><rect x="17" y="4" width="14" height="24" rx="7"/><path d="M10 22a14 14 0 0 0 28 0M24 36v8M16 44h16" stroke-linecap="round"/></g>
+    <text x="804" y="68" text-anchor="end" class="mono" font-size="15" letter-spacing="3" fill="#8a8a97">02</text>
+    <text y="168" class="sans" font-size="29" font-weight="700" letter-spacing="-0.6" fill="#f4f4f6"><tspan x="476" dy="0">Engage with</tspan><tspan x="476" dy="38">Industry Leaders</tspan></text>
+    <text x="476" y="246" class="cjk" font-size="21" font-weight="500" letter-spacing="2" fill="#ff3d63">对话行业领袖</text>
+    <rect x="476" y="270" width="328" height="1" fill="rgba(255,255,255,0.09)"/>
+    <text y="314" class="sans" font-size="19" fill="#c3c3cd"><tspan x="476" dy="0">Frontline practitioners on how the</tspan><tspan x="476" dy="30">work actually happens — markets,</tspan><tspan x="476" dy="30">careers, and current trends.</tspan></text>
+    <text y="430" class="cjk" font-size="17" fill="#8a8a97"><tspan x="476" dy="0">一线从业者讲真实的工作方式——</tspan><tspan x="476" dy="28">市场、职业路径与当下趋势。</tspan></text>
+  </g>
+  <g>
+    <rect x="880.5" y="0.5" width="399" height="519" rx="22" fill="#0e0e12" stroke="rgba(255,255,255,0.09)"/>
+    <rect x="916" y="0" width="120" height="2" fill="url(#accent)" class="sweep"/>
+    <rect x="916" y="40" width="72" height="72" rx="16" fill="rgba(204,0,51,0.12)" stroke="rgba(255,255,255,0.09)"/>
+    <g transform="translate(928 52)" fill="none" stroke="#ff3d63" stroke-width="2.2" stroke-linejoin="round"><circle cx="24" cy="10" r="5"/><circle cx="9" cy="36" r="5"/><circle cx="39" cy="36" r="5"/>
+      <circle cx="24" cy="27" r="3.5"/><path d="M24 15v8.5M21.2 29.2 13 33.5M26.8 29.2 35 33.5M13 33l8-21M35 33l-8-21" stroke-linecap="round"/></g>
+    <text x="1244" y="68" text-anchor="end" class="mono" font-size="15" letter-spacing="3" fill="#8a8a97">03</text>
+    <text y="168" class="sans" font-size="29" font-weight="700" letter-spacing="-0.6" fill="#f4f4f6"><tspan x="916" dy="0">Build an Exclusive</tspan><tspan x="916" dy="38">Community</tspan></text>
+    <text x="916" y="246" class="cjk" font-size="21" font-weight="500" letter-spacing="2" fill="#ff3d63">构建精英社群</text>
+    <rect x="916" y="270" width="328" height="1" fill="rgba(255,255,255,0.09)"/>
+    <text y="314" class="sans" font-size="19" fill="#c3c3cd"><tspan x="916" dy="0">Peers to job-hunt and study with,</tspan><tspan x="916" dy="30">from across finance, economics,</tspan><tspan x="916" dy="30">and business.</tspan></text>
+    <text y="430" class="cjk" font-size="17" fill="#8a8a97"><tspan x="916" dy="0">一起求职和学习的同伴，</tspan><tspan x="916" dy="28">来自金融、经济与商科。</tspan></text>
+  </g>
+</svg>

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 200" width="1280" height="200" role="img" aria-label="Open to all Rutgers students. No finance background required. Content in English and Chinese. Founding cohort, Fall 2026.">
+<style>
+  .sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif; }
+  .cjk { font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', 'Source Han Sans SC', sans-serif; }
+  .mono { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace; }
+  
+  .tile { opacity: 0; animation: up .9s cubic-bezier(0.22,1,0.28,1) forwards; }
+  .t0 { animation-delay: .05s; } .t1 { animation-delay: .15s; } .t2 { animation-delay: .25s; } .t3 { animation-delay: .35s; }
+  @keyframes up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .tile { opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+
+  <g>
+    <rect x="0.5" y="0.5" width="289" height="199" rx="20" fill="#f6f7f9" stroke="rgba(13,17,23,0.10)"/>
+    <g transform="translate(28 28)" fill="none" stroke="#c8002f" stroke-width="1.8" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/><path d="M17 4.6a4 4 0 0 1 0 8M20 14.5c2.4 1 4 3.2 4 6.5" stroke-linecap="round"/></g>
+    <text x="28" y="106" class="sans" font-size="30" font-weight="700" letter-spacing="-0.6" fill="#0b0b10">Open to all</text>
+    <text x="28" y="144" class="sans" font-size="17" fill="#3d3d48">All Rutgers students</text>
+    <text x="28" y="172" class="cjk" font-size="15" fill="#6a6a76">面向所有罗格斯学生</text>
+  </g>
+  <g>
+    <rect x="330.5" y="0.5" width="289" height="199" rx="20" fill="#f6f7f9" stroke="rgba(13,17,23,0.10)"/>
+    <g transform="translate(358 28)" fill="none" stroke="#c8002f" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M19 5l-4 4M9 15l-4 4" stroke-linecap="round"/></g>
+    <text x="358" y="106" class="sans" font-size="30" font-weight="700" letter-spacing="-0.6" fill="#0b0b10">No prerequisites</text>
+    <text x="358" y="144" class="sans" font-size="17" fill="#3d3d48">No finance background required</text>
+    <text x="358" y="172" class="cjk" font-size="15" fill="#6a6a76">无需金融背景</text>
+  </g>
+  <g>
+    <rect x="660.5" y="0.5" width="289" height="199" rx="20" fill="#f6f7f9" stroke="rgba(13,17,23,0.10)"/>
+    <g transform="translate(688 28)" fill="none" stroke="#c8002f" stroke-width="1.8" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M6 15l3-7 3 7M7 13h4M15 9h5M17.5 9v6M15 15h5" stroke-linecap="round"/></g>
+    <text x="688" y="106" class="sans" font-size="30" font-weight="700" letter-spacing="-0.6" fill="#0b0b10">English · 中文</text>
+    <text x="688" y="144" class="sans" font-size="17" fill="#3d3d48">Content in both languages</text>
+    <text x="688" y="172" class="cjk" font-size="15" fill="#6a6a76">中英双语内容</text>
+  </g>
+  <g>
+    <rect x="990.5" y="0.5" width="289" height="199" rx="20" fill="#f6f7f9" stroke="rgba(13,17,23,0.10)"/>
+    <g transform="translate(1018 28)" fill="none" stroke="#c8002f" stroke-width="1.8" stroke-linejoin="round"><path d="M5 22V3M5 4h12l-2 4 2 4H5" stroke-linecap="round"/></g>
+    <text x="1018" y="106" class="sans" font-size="30" font-weight="700" letter-spacing="-0.6" fill="#0b0b10">Fall 2026</text>
+    <text x="1018" y="144" class="sans" font-size="17" fill="#3d3d48">Founding cohort</text>
+    <text x="1018" y="172" class="cjk" font-size="15" fill="#6a6a76">创始成员招募中</text>
+  </g>
+</svg>
