@@ -1,49 +1,85 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 470" width="1280" height="470" role="img" aria-label="What we do. FinTech and AI: Chinese AI workshop, financial engineering, AI tools for students. Networking: alumni stories, company tours, analysis by industry experts. Practice: equity research, certificates, exchange programs.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 846 374" width="846" height="374" role="img" aria-label="What we do. FinTech and AI: Chinese AI workshop, financial engineering, student AI toolkit. Networking: alumni stories, company tours, industry expert talks. Practice: equity research, certificates, exchange programs.">
 <style>
   .sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif; }
-  .serif { font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, 'Songti SC', 'Noto Serif SC', 'Source Han Serif SC', serif; }
-  .cjk { font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', 'Source Han Sans SC', sans-serif; }
+  .serif { font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, 'Songti SC', 'Noto Serif SC', serif; }
+  .cjk { font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif; }
   .cjks { font-family: 'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', serif; }
-  .mono { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace; }
-  .rv { opacity: 0; animation: rv 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-  @keyframes rv { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
-  .dr { animation: dr 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .rv { opacity: 0; animation: rv 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  @keyframes rv { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .dr { animation: dr 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   @keyframes dr { to { stroke-dashoffset: 0; } }
+  .grow { transform-box: fill-box; transform-origin: left center; transform: scaleX(0); animation: grow 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  @keyframes grow { to { transform: scaleX(1); } }
   
-  @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; } .rv { opacity: 1 !important; transform: none !important; } .dr { stroke-dashoffset: 0 !important; } }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; }
+    .rv, .fi { opacity: 1; } .grow { transform: none; } .dr { stroke-dashoffset: 0; }
+  }
 </style>
+<g class="rv" style="animation-delay:0.05s">
+  <circle cx="59" cy="34" r="3" fill="#ff6b63"/>
+  <text x="72" y="40" class="serif" font-size="20" fill="#f0ede7">What we do <tspan class="cjks" dx="8" font-size="14" letter-spacing="4" fill="#7c8395">我们做什么</tspan></text>
+</g>
 
-  <g class="rv" style="animation-delay:0.05s">
-    <rect x="0.5" y="0.5" width="399" height="469" rx="20" fill="#1a1f28" stroke="rgba(246,243,238,0.08)"/>
-    <rect x="36" y="0" width="64" height="3" fill="#9aa1ee"/>
-    <g transform="translate(36 44)" fill="none" stroke="#9aa1ee" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <g stroke-dasharray="220" stroke-dashoffset="220" class="dr" style="animation-delay:0.35s; animation-duration:2.6s"><rect x="9" y="9" width="22" height="22" rx="4"/><rect x="15" y="15" width="10" height="10" rx="1.5"/><path d="M15 4v5M20 4v5M25 4v5M15 31v5M20 31v5M25 31v5M4 15h5M4 20h5M4 25h5M31 15h5M31 20h5M31 25h5"/></g>
-    </g>
-    <text x="364" y="66" text-anchor="end" class="mono" font-size="13" letter-spacing="3" fill="#8b91a7">01</text>
-    <text x="36" y="138" class="serif" font-size="34" letter-spacing="-0.4" fill="#f6f3ee">FinTech &amp; AI</text>
-    <text x="36" y="168" class="cjks" font-size="17" letter-spacing="3" fill="#9aa1ee">金融科技</text>
-    <path d="M36 206 H364" stroke="rgba(246,243,238,0.08)"/><text x="36" y="236" class="sans" font-size="18" fill="#f6f3ee">Chinese AI Workshop</text><text x="36" y="260" class="cjk" font-size="14" fill="#8b91a7">国产大模型工坊</text><text x="364" y="236" text-anchor="end" class="mono" font-size="12" fill="#9aa1ee">01</text><path d="M36 276 H364" stroke="rgba(246,243,238,0.08)"/><text x="36" y="306" class="sans" font-size="18" fill="#f6f3ee">Financial Engineering</text><text x="36" y="330" class="cjk" font-size="14" fill="#8b91a7">金融工程</text><text x="364" y="306" text-anchor="end" class="mono" font-size="12" fill="#9aa1ee">02</text><path d="M36 346 H364" stroke="rgba(246,243,238,0.08)"/><text x="36" y="376" class="sans" font-size="18" fill="#f6f3ee">AI tools &amp; benefits for students</text><text x="36" y="400" class="cjk" font-size="14" fill="#8b91a7">学生 AI 福利与经验</text><text x="364" y="376" text-anchor="end" class="mono" font-size="12" fill="#9aa1ee">03</text>
-  </g>
   <g class="rv" style="animation-delay:0.20s">
-    <rect x="440.5" y="0.5" width="399" height="469" rx="20" fill="#1a1f28" stroke="rgba(246,243,238,0.08)"/>
-    <rect x="476" y="0" width="64" height="3" fill="#d6d3cc"/>
-    <g transform="translate(476 44)" fill="none" stroke="#d6d3cc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <g stroke-dasharray="220" stroke-dashoffset="220" class="dr" style="animation-delay:0.50s; animation-duration:2.6s"><circle cx="20" cy="9" r="4.5"/><circle cx="8" cy="31" r="4.5"/><circle cx="32" cy="31" r="4.5"/><path d="M17.8 13 10.2 27M22.2 13l7.6 14M12.5 31h15"/></g>
-    </g>
-    <text x="804" y="66" text-anchor="end" class="mono" font-size="13" letter-spacing="3" fill="#8b91a7">02</text>
-    <text x="476" y="138" class="serif" font-size="34" letter-spacing="-0.4" fill="#f6f3ee">Networking</text>
-    <text x="476" y="168" class="cjks" font-size="17" letter-spacing="3" fill="#d6d3cc">交流会</text>
-    <path d="M476 206 H804" stroke="rgba(246,243,238,0.08)"/><text x="476" y="236" class="sans" font-size="18" fill="#f6f3ee">Alumni Stories</text><text x="476" y="260" class="cjk" font-size="14" fill="#8b91a7">校友分享</text><text x="804" y="236" text-anchor="end" class="mono" font-size="12" fill="#d6d3cc">01</text><path d="M476 276 H804" stroke="rgba(246,243,238,0.08)"/><text x="476" y="306" class="sans" font-size="18" fill="#f6f3ee">Company Tours</text><text x="476" y="330" class="cjk" font-size="14" fill="#8b91a7">行业参观</text><text x="804" y="306" text-anchor="end" class="mono" font-size="12" fill="#d6d3cc">02</text><path d="M476 346 H804" stroke="rgba(246,243,238,0.08)"/><text x="476" y="376" class="sans" font-size="18" fill="#f6f3ee">Analysis by Industry Experts</text><text x="476" y="400" class="cjk" font-size="14" fill="#8b91a7">行业专家分享</text><text x="804" y="376" text-anchor="end" class="mono" font-size="12" fill="#d6d3cc">03</text>
+    <text x="56" y="104" class="sans" font-size="11.5" letter-spacing="2.5" fill="#ff6b63">01</text>
+    <text x="56" y="140" class="serif" font-size="26" letter-spacing="-0.3" fill="#f0ede7">FinTech &amp; AI</text>
+    <text x="56" y="166" class="cjks" font-size="14" letter-spacing="3" fill="#7c8395">金融科技</text>
   </g>
-  <g class="rv" style="animation-delay:0.35s">
-    <rect x="880.5" y="0.5" width="399" height="469" rx="20" fill="#1a1f28" stroke="rgba(246,243,238,0.08)"/>
-    <rect x="916" y="0" width="64" height="3" fill="#ef8a80"/>
-    <g transform="translate(916 44)" fill="none" stroke="#ef8a80" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <g stroke-dasharray="220" stroke-dashoffset="220" class="dr" style="animation-delay:0.65s; animation-duration:2.6s"><path d="M5 35h30"/><path d="M8 29l8-9 6 5 11-13"/><path d="M27 12h6v6"/></g>
+    <g class="rv" style="animation-delay:0.45s">
+      <rect x="56" y="186" width="226" height="1" fill="rgba(240,237,231,0.13)"/>
+      <text x="56" y="210" class="sans" font-size="14.5" fill="#f0ede7">Chinese AI Workshop</text>
+      <text x="56" y="230" class="cjk" font-size="12.5" fill="#7c8395">国产大模型工坊</text>
     </g>
-    <text x="1244" y="66" text-anchor="end" class="mono" font-size="13" letter-spacing="3" fill="#8b91a7">03</text>
-    <text x="916" y="138" class="serif" font-size="34" letter-spacing="-0.4" fill="#f6f3ee">Practice</text>
-    <text x="916" y="168" class="cjks" font-size="17" letter-spacing="3" fill="#ef8a80">实践</text>
-    <path d="M916 206 H1244" stroke="rgba(246,243,238,0.08)"/><text x="916" y="236" class="sans" font-size="18" fill="#f6f3ee">Equity Research</text><text x="916" y="260" class="cjk" font-size="14" fill="#8b91a7">股票分析</text><text x="1244" y="236" text-anchor="end" class="mono" font-size="12" fill="#ef8a80">01</text><path d="M916 276 H1244" stroke="rgba(246,243,238,0.08)"/><text x="916" y="306" class="sans" font-size="18" fill="#f6f3ee">Certificates</text><text x="916" y="330" class="cjk" font-size="14" fill="#8b91a7">证书</text><text x="1244" y="306" text-anchor="end" class="mono" font-size="12" fill="#ef8a80">02</text><path d="M916 346 H1244" stroke="rgba(246,243,238,0.08)"/><text x="916" y="376" class="sans" font-size="18" fill="#f6f3ee">Exchange Programs</text><text x="916" y="400" class="cjk" font-size="14" fill="#8b91a7">交换项目</text><text x="1244" y="376" text-anchor="end" class="mono" font-size="12" fill="#ef8a80">03</text>
+    <g class="rv" style="animation-delay:0.53s">
+      <rect x="56" y="242" width="226" height="1" fill="rgba(240,237,231,0.13)"/>
+      <text x="56" y="266" class="sans" font-size="14.5" fill="#f0ede7">Financial Engineering</text>
+      <text x="56" y="286" class="cjk" font-size="12.5" fill="#7c8395">金融工程</text>
+    </g>
+    <g class="rv" style="animation-delay:0.61s">
+      <rect x="56" y="298" width="226" height="1" fill="rgba(240,237,231,0.13)"/>
+      <text x="56" y="322" class="sans" font-size="14.5" fill="#f0ede7">Student AI Toolkit</text>
+      <text x="56" y="342" class="cjk" font-size="12.5" fill="#7c8395">学生 AI 福利与经验</text>
+    </g>
+  <g class="rv" style="animation-delay:0.32s">
+    <text x="310" y="104" class="sans" font-size="11.5" letter-spacing="2.5" fill="#ff6b63">02</text>
+    <text x="310" y="140" class="serif" font-size="26" letter-spacing="-0.3" fill="#f0ede7">Networking</text>
+    <text x="310" y="166" class="cjks" font-size="14" letter-spacing="3" fill="#7c8395">交流会</text>
   </g>
+    <g class="rv" style="animation-delay:0.57s">
+      <rect x="310" y="186" width="226" height="1" fill="rgba(240,237,231,0.13)"/>
+      <text x="310" y="210" class="sans" font-size="14.5" fill="#f0ede7">Alumni Stories</text>
+      <text x="310" y="230" class="cjk" font-size="12.5" fill="#7c8395">校友分享</text>
+    </g>
+    <g class="rv" style="animation-delay:0.65s">
+      <rect x="310" y="242" width="226" height="1" fill="rgba(240,237,231,0.13)"/>
+      <text x="310" y="266" class="sans" font-size="14.5" fill="#f0ede7">Company Tours</text>
+      <text x="310" y="286" class="cjk" font-size="12.5" fill="#7c8395">行业参观</text>
+    </g>
+    <g class="rv" style="animation-delay:0.73s">
+      <rect x="310" y="298" width="226" height="1" fill="rgba(240,237,231,0.13)"/>
+      <text x="310" y="322" class="sans" font-size="14.5" fill="#f0ede7">Industry Expert Talks</text>
+      <text x="310" y="342" class="cjk" font-size="12.5" fill="#7c8395">行业专家分享</text>
+    </g>
+  <g class="rv" style="animation-delay:0.44s">
+    <text x="564" y="104" class="sans" font-size="11.5" letter-spacing="2.5" fill="#ff6b63">03</text>
+    <text x="564" y="140" class="serif" font-size="26" letter-spacing="-0.3" fill="#f0ede7">Practice</text>
+    <text x="564" y="166" class="cjks" font-size="14" letter-spacing="3" fill="#7c8395">实践</text>
+  </g>
+    <g class="rv" style="animation-delay:0.69s">
+      <rect x="564" y="186" width="226" height="1" fill="rgba(240,237,231,0.13)"/>
+      <text x="564" y="210" class="sans" font-size="14.5" fill="#f0ede7">Equity Research</text>
+      <text x="564" y="230" class="cjk" font-size="12.5" fill="#7c8395">股票分析</text>
+    </g>
+    <g class="rv" style="animation-delay:0.77s">
+      <rect x="564" y="242" width="226" height="1" fill="rgba(240,237,231,0.13)"/>
+      <text x="564" y="266" class="sans" font-size="14.5" fill="#f0ede7">Certificates</text>
+      <text x="564" y="286" class="cjk" font-size="12.5" fill="#7c8395">证书</text>
+    </g>
+    <g class="rv" style="animation-delay:0.85s">
+      <rect x="564" y="298" width="226" height="1" fill="rgba(240,237,231,0.13)"/>
+      <text x="564" y="322" class="sans" font-size="14.5" fill="#f0ede7">Exchange Programs</text>
+      <text x="564" y="342" class="cjk" font-size="12.5" fill="#7c8395">交换项目</text>
+    </g>
+<rect x="0" y="373" width="846" height="1" fill="rgba(240,237,231,0.13)" class="grow" style="animation-delay:0.60s"/>
 </svg>
