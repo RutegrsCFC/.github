@@ -13,8 +13,8 @@ Design notes
 - Self-contained (no external fonts or images): GitHub shows README images through
   <img>, which blocks external resources.
 - Motion is slow and quiet: staggered reveals, a coral hairline that draws itself,
-  contour lines (the deck's background motif) that slowly change shape, and a
-  focus-area ticker. All of it switches off under prefers-reduced-motion.
+  contour lines (the deck's background motif) that slowly change shape with coral
+  lights running along them, and an activity ticker. All of it switches off under prefers-reduced-motion.
 """
 import base64
 import math
@@ -155,42 +155,54 @@ def panel(H, body, t, label):
 </svg>"""
 
 
+# --------------------------------------------------------------------------- flowing coral line
+def strand(cx, cy, r, k, length, dur, reverse=False, width=1.4, glow=True, opacity=1.0, begin=0.0, morph=16):
+    """A coral light running along one morphing contour ring.
+
+    The head is bright and the tail fades out: several copies of the same dash,
+    each a little longer and fainter, all aligned at the head. pathLength="1000"
+    keeps the dash units fixed while the ring changes shape, so the loop is seamless.
+    """
+    a, b = ring(cx, cy, r, 0.4, k), ring(cx, cy, r, 2.2, k)
+    shape = (f'<animate attributeName="d" dur="{morph}s" repeatCount="indefinite" values="{a};{b};{a}" '
+             f'keyTimes="0;0.5;1" calcMode="spline" keySplines="0.45 0 0.55 1;0.45 0 0.55 1"/>')
+    sign = 1 if reverse else -1
+    layers = []
+    steps = 7
+    for i in range(steps):
+        frac = (i + 1) / steps                     # 1/7 .. 1 of the full tail
+        seg = length * frac
+        lead = length - seg                        # shift so every copy ends at the head
+        op = opacity * (0.95 if i == 0 else 0.16)
+        w = width * (1.35 - 0.45 * frac)
+        o0 = -lead if not reverse else 0.0       # moving backwards, the head is the dash start
+        layers.append(
+            f'<path d="{a}" pathLength="1000" fill="none" stroke-width="{w:.2f}" stroke-linecap="round" '
+            f'stroke-opacity="{op:.2f}" stroke-dasharray="{seg:.1f} {1000 - seg:.1f}" stroke-dashoffset="{o0:.1f}">{shape}'
+            f'<animate attributeName="stroke-dashoffset" from="{o0:.1f}" to="{o0 + sign * 1000:.1f}" dur="{dur}s" begin="{begin}s" repeatCount="indefinite"/></path>')
+    halo = ""
+    if glow:
+        hs = length * 0.18
+        h0 = -(length - hs) if not reverse else 0.0
+        halo = (f'<path d="{a}" pathLength="1000" fill="none" stroke-width="{width * 5:.1f}" stroke-linecap="round" '
+                f'stroke-opacity="{0.35 * opacity:.2f}" filter="url(#soft)" stroke-dasharray="{hs:.1f} {1000 - hs:.1f}" stroke-dashoffset="{h0:.1f}">{shape}'
+                f'<animate attributeName="stroke-dashoffset" from="{h0:.1f}" to="{h0 + sign * 1000:.1f}" dur="{dur}s" begin="{begin}s" repeatCount="indefinite"/></path>')
+    return halo + "".join(layers)
+
+
 # --------------------------------------------------------------------------- hero
-TOPICS = [
-    ("Chinese Financial Systems", "中国金融体系"), ("A-Shares &amp; Hong Kong", "A股与港股"),
-    ("Chinese AI", "国产大模型"), ("FinTech", "金融科技"), ("Supply Chains", "供应链"),
-    ("Cross-Border Investment", "跨境投资"), ("Policy &amp; Regulation", "政策与监管"),
-    ("Equity Research", "股票研究"), ("Exchange Programs", "交换项目"),
-]
-
-
 def hero(t):
     logo = base64.b64encode(LOGO.read_bytes()).decode()
-    H = 500
-    band = 436
-
-    # ticker row
-    x, items = 0, []
-    for en, zh in TOPICS:
-        ew = est(en.replace("&amp;", "&"), 15, 0.56)
-        zw = est(zh, 12.5)
-        items.append(
-            f'<text x="{x:.0f}" y="0" class="serif" font-size="15" fill="{t["on_panel"]}" fill-opacity="0.9">{en}</text>'
-            f'<text x="{x + ew + 9:.0f}" y="-0.5" class="cjk" font-size="12.5" fill="{t["on_panel_muted"]}">{zh}</text>'
-            f'<circle cx="{x + ew + zw + 9 + 22:.0f}" cy="-5" r="2" fill="{t["coral"]}"/>')
-        x += ew + zw + 9 + 44
-    period = round(x)
-    row = "".join(items)
-
-    extra = f"""
-  .run {{ animation: run {period / 26:.0f}s linear infinite; }}
-  @keyframes run {{ to {{ transform: translateX(-{period}px); }} }}
-  .orbit {{ stroke-dasharray: 90 2400; animation: orbit 18s linear infinite; }}
-  @keyframes orbit {{ to {{ stroke-dashoffset: -2490; }} }}
-  .fi {{ opacity: 0; animation: fi 3s ease .2s forwards; }}
-  @keyframes fi {{ to {{ opacity: 1; }} }}
+    H = 452
+    cx, cy = 700, 236
+    extra = """
+  .fi { opacity: 0; animation: fi 3s ease .2s forwards; }
+  @keyframes fi { to { opacity: 1; } }
 """
-    cx, cy = 700, 250
+    lines = (strand(cx, cy, 22 + 9 * 16, 9, 260, 13, width=1.5)
+             + strand(cx, cy, 22 + 5 * 16, 5, 170, 17, reverse=True, width=1.1, glow=False, opacity=0.75, begin=-4)
+             + strand(cx, cy, 22 + 13 * 16, 13, 300, 23, width=1.2, glow=False, opacity=0.55, begin=-9)
+             + strand(cx, cy, 22 + 2 * 16, 2, 140, 11, reverse=True, width=1.0, glow=False, opacity=0.5, begin=-2))
     return f"""
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-labelledby="t">
 <title id="t">Rutgers Chinese Finance Club — Bridging Western finance and Chinese markets. 连接西方金融与中国市场。</title>
@@ -198,21 +210,17 @@ def hero(t):
 <defs>
   <clipPath id="f"><rect width="{W}" height="{H}" rx="20"/></clipPath>
   <clipPath id="logo"><circle cx="{X0 + 18}" cy="66" r="18"/></clipPath>
-  <radialGradient id="rf" cx="{cx / W:.3f}" cy="{cy / H:.3f}" r="0.55">
-    <stop offset="0" stop-color="#fff"/><stop offset="0.65" stop-color="#fff" stop-opacity="0.7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  <radialGradient id="rf" cx="{cx / W:.3f}" cy="{cy / H:.3f}" r="0.6">
+    <stop offset="0" stop-color="#fff"/><stop offset="0.6" stop-color="#fff" stop-opacity="0.75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
   </radialGradient>
-  <mask id="rm"><rect width="{W}" height="{band}" fill="url(#rf)"/></mask>
-  <linearGradient id="tf" x1="0" x2="1">
-    <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.1" stop-color="#fff"/>
-    <stop offset="0.9" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
-  </linearGradient>
-  <mask id="tm"><rect y="{band}" width="{W}" height="{H - band}" fill="url(#tf)"/></mask>
+  <mask id="rm"><rect width="{W}" height="{H}" fill="url(#rf)"/></mask>
+  <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
 </defs>
 <g clip-path="url(#f)">
   <rect width="{W}" height="{H}" fill="{t['panel']}"/>
   <g mask="url(#rm)" class="fi">
     {contours(cx, cy, 16, 22, 16, t['contour'])}
-    <path d="{ring(cx, cy, 166, 0.4, 9)}" fill="none" stroke="{t['coral']}" stroke-opacity="0.55" stroke-width="1.2" stroke-linecap="round" class="orbit"><animate attributeName="d" dur="16s" repeatCount="indefinite" values="{ring(cx, cy, 166, 0.4, 9)};{ring(cx, cy, 166, 2.2, 9)};{ring(cx, cy, 166, 0.4, 9)}" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.45 0 0.55 1;0.45 0 0.55 1"/></path>
+    <g stroke="{t['coral']}">{lines}</g>
   </g>
 
   <g class="rv" {d(0.05)}>
@@ -227,9 +235,60 @@ def hero(t):
   <text class="cjks rv" x="{X0}" y="326" font-size="21" letter-spacing="7" fill="{t['on_panel']}" fill-opacity="0.78" {d(0.42)}>连接西方金融与中国市场</text>
   <path d="M{X0} 362 H{X0 + 40}" stroke="{t['coral']}" stroke-width="1.5" stroke-dasharray="40" stroke-dashoffset="40" class="dr" {d(0.7)}/>
   <text class="sans rv" x="{X0}" y="396" font-size="15" fill="{t['on_panel_muted']}" {d(0.55)}>Practical insight into China’s financial systems and tech sector, for Rutgers students.</text>
+  <rect x="0.5" y="0.5" width="{W - 1}" height="{H - 1}" rx="19.5" fill="none" stroke="{t['panel_border']}"/>
+</g>
+</svg>"""
 
-  <rect x="0" y="{band}" width="{W}" height="1" fill="{t['line']}" class="grow" {d(0.6)}/>
-  <g mask="url(#tm)" class="rv" {d(0.8)}><g transform="translate({X0} 474)"><g class="run">
+
+# --------------------------------------------------------------------------- activity ticker
+# Real activities from the F2026 activity map and core pillars, each with its format.
+ACTIVITIES = [
+    ("WORKSHOP", "Chinese AI Workshop", "国产大模型工坊"),
+    ("TALK", "Alumni Stories", "校友分享"),
+    ("TOUR", "Company Tours", "行业参观"),
+    ("PRACTICE", "Equity Research", "股票分析"),
+    ("ROUNDTABLE", "Policy &amp; Trade Roundtables", "政策与贸易圆桌"),
+    ("TALK", "Industry Expert Analysis", "行业专家分享"),
+    ("WORKSHOP", "Financial Engineering", "金融工程"),
+    ("PROGRAM", "Exchange Programs", "交换项目"),
+    ("CERTIFICATE", "Professional Certificates", "证书"),
+    ("SHARE", "Career Opportunities", "机会分享"),
+]
+
+
+def ticker(t):
+    H = 64
+    x, items = 0, []
+    for tag, en, zh in ACTIVITIES:
+        tw = est(tag, 10.5, 0.66) + 1.6 * len(tag) + 18
+        ew = est(en.replace("&amp;", "&"), 15, 0.56)
+        zw = est(zh, 12.5)
+        items.append(
+            f'<rect x="{x:.0f}" y="-15" width="{tw:.0f}" height="20" rx="10" fill="none" stroke="{t["coral"]}" stroke-opacity="0.55"/>'
+            f'<text x="{x + tw / 2:.0f}" y="-1.5" text-anchor="middle" class="sans" font-size="10.5" letter-spacing="1.6" fill="{t["coral"]}">{tag}</text>'
+            f'<text x="{x + tw + 12:.0f}" y="0" class="serif" font-size="15" fill="{t["on_panel"]}">{en}</text>'
+            f'<text x="{x + tw + 12 + ew + 8:.0f}" y="-0.5" class="cjk" font-size="12.5" fill="{t["on_panel_muted"]}">{zh}</text>')
+        x += tw + 12 + ew + 8 + zw + 44
+    period = round(x)
+    row = "".join(items)
+    extra = f"""
+  .run {{ animation: run {period / 30:.0f}s linear infinite; }}
+  @keyframes run {{ to {{ transform: translateX(-{period}px); }} }}
+"""
+    return f"""
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Activities: {esc(', '.join(en.replace('&amp;', '&') for _, en, _ in ACTIVITIES))}">
+<style>{style(extra)}</style>
+<defs>
+  <clipPath id="f"><rect width="{W}" height="{H}" rx="20"/></clipPath>
+  <linearGradient id="tf" x1="0" x2="1">
+    <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.07" stop-color="#fff"/>
+    <stop offset="0.93" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  </linearGradient>
+  <mask id="tm"><rect width="{W}" height="{H}" fill="url(#tf)"/></mask>
+</defs>
+<g clip-path="url(#f)">
+  <rect width="{W}" height="{H}" fill="{t['panel']}"/>
+  <g mask="url(#tm)" class="rv" {d(0.6)}><g transform="translate(28 37)"><g class="run">
     <g>{row}</g><g transform="translate({period} 0)">{row}</g>
   </g></g></g>
   <rect x="0.5" y="0.5" width="{W - 1}" height="{H - 1}" rx="19.5" fill="none" stroke="{t['panel_border']}"/>
@@ -361,6 +420,7 @@ def button(label, zh, width, t, primary=False):
 
 for name, t in THEMES.items():
     write(f"hero-{name}.svg", hero(t))
+    write(f"ticker-{name}.svg", ticker(t))
     write(f"mission-{name}.svg", mission(t))
     write(f"pillars-{name}.svg", pillars(t))
     write(f"join-{name}.svg", join(t))
