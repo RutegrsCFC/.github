@@ -3,8 +3,13 @@
 Every SVG is self-contained (no external fonts or images) because GitHub renders
 README images through <img>, which blocks external resources. Text uses system
 font stacks, so every layout leaves horizontal slack for metric differences.
+
+Palette follows the RCFC F2026 deck and logo: midnight slate (#1f252e, #2a2f42,
+#373d53), logo coral (#ff5757), ivory text, with periwinkle and rose as the
+secondary accents used in the deck's activity map.
 """
 import base64
+import math
 import sys
 from pathlib import Path
 
@@ -14,337 +19,416 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 SANS = ("-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, "
         "'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif")
+SERIF = ("'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, "
+         "'Songti SC', 'Noto Serif SC', 'Source Han Serif SC', serif")
 CJK = ("'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', "
        "'Source Han Sans SC', sans-serif")
+CJK_SERIF = "'Songti SC', 'STSong', 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', serif"
 MONO = "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace"
+
+EXPO = "cubic-bezier(0.16, 1, 0.3, 1)"
+
+# Banner colours (hero, ticker) are fixed: they read as dark panels on both GitHub themes.
+NIGHT = "#1f252e"
+NIGHT2 = "#2a2f42"
+SLATE = "#373d53"
+CORAL = "#ff5757"
+CORAL_SOFT = "#ff7a70"
+PERI = "#8f97e8"
+IVORY = "#f6f3ee"
 
 THEMES = {
     "dark": dict(
-        canvas="#0d1117", surface="#0e0e12", surface2="#141419", border="rgba(255,255,255,0.09)",
-        border2="rgba(255,255,255,0.16)", ink="#f4f4f6", muted="#c3c3cd", subtle="#8a8a97",
-        brand="#cc0033", brand_ink="#ff3d63", gold="#e2b45c", grid="rgba(255,255,255,0.05)",
-        icon_bg="rgba(204,0,51,0.12)",
+        canvas="#0d1117", card="#1a1f28", card2="#222837", border="rgba(246,243,238,0.08)",
+        border2="rgba(246,243,238,0.16)", ink="#f6f3ee", muted="#c4c7d4", subtle="#8b91a7",
+        coral="#ff6b63", peri="#9aa1ee", rose="#ef8a80", stone="#d6d3cc",
+        contour="rgba(246,243,238,0.05)", glow="0.16",
     ),
     "light": dict(
-        canvas="#ffffff", surface="#ffffff", surface2="#f6f7f9", border="rgba(13,17,23,0.10)",
-        border2="rgba(13,17,23,0.18)", ink="#0b0b10", muted="#3d3d48", subtle="#6a6a76",
-        brand="#cc0033", brand_ink="#c8002f", gold="#9a6b12", grid="rgba(13,17,23,0.06)",
-        icon_bg="rgba(204,0,51,0.07)",
+        canvas="#ffffff", card="#f8f7f4", card2="#f1f0ec", border="rgba(31,37,46,0.10)",
+        border2="rgba(31,37,46,0.20)", ink="#1f252e", muted="#474d60", subtle="#767c91",
+        coral="#d83f3a", peri="#4f58b3", rose="#b8504a", stone="#5b5f6b",
+        contour="rgba(31,37,46,0.06)", glow="0.08",
     ),
 }
 
-REDUCED = "@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }"
+REDUCED = "@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; } .rv { opacity: 1 !important; transform: none !important; } .dr { stroke-dashoffset: 0 !important; } }"
 
 
 def write(name, svg):
     (OUT / name).write_text(svg.strip() + "\n", encoding="utf-8")
 
 
-def base_style(t, extra=""):
+def esc(s):
+    return s.replace("&", "&amp;").replace("<", "&lt;")
+
+
+def css(extra=""):
     return f"""
   .sans {{ font-family: {SANS}; }}
+  .serif {{ font-family: {SERIF}; }}
   .cjk {{ font-family: {CJK}; }}
+  .cjks {{ font-family: {CJK_SERIF}; }}
   .mono {{ font-family: {MONO}; }}
+  .rv {{ opacity: 0; animation: rv 1.4s {EXPO} forwards; }}
+  @keyframes rv {{ from {{ opacity: 0; transform: translateY(16px); }} to {{ opacity: 1; transform: none; }} }}
+  .dr {{ animation: dr 2.2s {EXPO} forwards; }}
+  @keyframes dr {{ to {{ stroke-dashoffset: 0; }} }}
   {extra}
   {REDUCED}
 """
 
 
+def delay(i, base=0.0, step=0.12):
+    return f'style="animation-delay:{base + i * step:.2f}s"'
+
+
+def est(text, size, latin=0.56):
+    """Rough rendered width: CJK glyphs are 1em, latin about `latin` em."""
+    return sum(size * (1.0 if ord(ch) > 0x2E80 else latin) for ch in text)
+
+
+def wrap(text, size, width, latin=0.56):
+    cjk = any(ord(ch) > 0x2E80 for ch in text)
+    units = list(text) if cjk else text.split(" ")
+    lines, cur = [], ""
+    for u in units:
+        trial = (cur + u) if cjk else (cur + " " + u).strip()
+        if cur and est(trial, size, latin) > width:
+            lines.append(cur)
+            cur = u
+        else:
+            cur = trial
+    if cur:
+        lines.append(cur)
+    return lines
+
+
+def tspans(lines, x, lh):
+    return "".join(f'<tspan x="{x}" dy="{0 if i == 0 else lh}">{esc(s)}</tspan>' for i, s in enumerate(lines))
+
+
+def contour_rings(cx, cy, n, r0, step, seed=0.0, pts=96):
+    """Concentric, gently warped rings: the topographic motif from the deck backgrounds."""
+    paths = []
+    for k in range(n):
+        r = r0 + k * step
+        d = []
+        for i in range(pts):
+            a = 2 * math.pi * i / pts
+            w = (1 + 0.07 * math.sin(3 * a + seed + k * 0.17)
+                 + 0.04 * math.sin(5 * a - seed * 1.7 + k * 0.11)
+                 + 0.02 * math.sin(9 * a + k * 0.3))
+            x = cx + r * w * math.cos(a) * 1.18
+            y = cy + r * w * math.sin(a)
+            d.append(f"{x:.1f},{y:.1f}")
+        paths.append("M" + " L".join(d) + " Z")
+    return paths
+
+
 # --------------------------------------------------------------------------- hero
 def hero():
     logo = base64.b64encode(LOGO.read_bytes()).decode()
-    t = THEMES["dark"]
-    # Market-line path across the bottom: deterministic, gently rising.
-    pts = [(0, 470), (70, 455), (130, 462), (190, 438), (250, 446), (320, 420), (380, 431),
-           (440, 404), (500, 414), (560, 392), (630, 399), (690, 372), (750, 383), (810, 360),
-           (880, 368), (940, 341), (1000, 352), (1060, 326), (1120, 333), (1180, 309), (1280, 296)]
-    line = "M" + " L".join(f"{x},{y}" for x, y in pts)
-    area = line + " L1280,560 L0,560 Z"
-    candles = ""
-    for i, (x, y) in enumerate(pts[1:-1]):
-        up = i % 3 != 1
-        h = 14 + (i * 7) % 16
-        c = t["brand_ink"] if up else t["subtle"]
-        candles += (f'<line x1="{x}" y1="{y-h-8}" x2="{x}" y2="{y+h+8}" stroke="{c}" stroke-opacity="0.35" stroke-width="1.5"/>'
-                    f'<rect x="{x-4}" y="{y-h}" width="8" height="{2*h}" rx="1.5" fill="{c}" fill-opacity="0.28"/>')
-    css = base_style(t, f"""
-  .drift {{ animation: drift 16s ease-in-out infinite alternate; transform-origin: center; }}
-  @keyframes drift {{ from {{ transform: translate(0,0) scale(1); }} to {{ transform: translate(-60px,30px) scale(1.12); }} }}
-  .drift2 {{ animation: drift2 20s ease-in-out infinite alternate; }}
-  @keyframes drift2 {{ from {{ transform: translate(0,0); }} to {{ transform: translate(70px,-20px); }} }}
-  .spin {{ animation: spin 60s linear infinite; transform-origin: 250px 270px; }}
-  @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
-  .draw {{ stroke-dasharray: 1700; stroke-dashoffset: 1700; animation: draw 3.2s cubic-bezier(0.22,1,0.28,1) 0.3s forwards; }}
-  @keyframes draw {{ to {{ stroke-dashoffset: 0; }} }}
-  .fade {{ opacity: 0; animation: fade 1.4s ease 1.2s forwards; }}
-  @keyframes fade {{ to {{ opacity: 1; }} }}
-  .rise {{ opacity: 0; animation: rise 1s cubic-bezier(0.22,1,0.28,1) forwards; }}
-  .d1 {{ animation-delay: .1s; }} .d2 {{ animation-delay: .25s; }} .d3 {{ animation-delay: .4s; }} .d4 {{ animation-delay: .55s; }} .d5 {{ animation-delay: .7s; }}
-  @keyframes rise {{ from {{ opacity: 0; transform: translateY(14px); }} to {{ opacity: 1; transform: translateY(0); }} }}
-  .pulse {{ animation: pulse 2.4s ease-in-out infinite; }}
-  @keyframes pulse {{ 0%,100% {{ opacity: 1; }} 50% {{ opacity: .25; }} }}
-  @media (prefers-reduced-motion: reduce) {{ .draw {{ stroke-dashoffset: 0; }} .fade, .rise {{ opacity: 1; }} }}
-""")
+    W, H = 1280, 600
+    cx, cy = 1000, 300
+    rings = contour_rings(cx, cy, 26, 26, 17, seed=0.6)
+    ring_svg = "".join(f'<path d="{d}"/>' for d in rings)
+    hi = rings[15]
+
+    ax, ay, bx, by = 772, 448, 1166, 384     # New Brunswick -> Shanghai
+    arc = f"M{ax},{ay} C{ax + 90},{ay - 300} {bx - 120},{by - 290} {bx},{by}"
+
+    extra = f"""
+  .turn {{ animation: turn 140s linear infinite; transform-box: view-box; transform-origin: {cx}px {cy}px; }}
+  @keyframes turn {{ to {{ transform: rotate(360deg); }} }}
+  .breathe {{ animation: breathe 14s ease-in-out infinite alternate; transform-box: view-box; transform-origin: {cx}px {cy}px; }}
+  @keyframes breathe {{ from {{ transform: scale(1); }} to {{ transform: scale(1.045); }} }}
+  .orbit {{ stroke-dasharray: 180 2600; animation: orbit 11s linear infinite; }}
+  @keyframes orbit {{ to {{ stroke-dashoffset: -2780; }} }}
+  .ping {{ transform-box: fill-box; transform-origin: center; animation: ping 3.2s {EXPO} infinite; }}
+  @keyframes ping {{ 0% {{ transform: scale(.4); opacity: .9; }} 100% {{ transform: scale(3.4); opacity: 0; }} }}
+  .glowA {{ animation: glowA 18s ease-in-out infinite alternate; }}
+  @keyframes glowA {{ from {{ transform: translate(0,0); }} to {{ transform: translate(-50px,26px); }} }}
+  .fadeIn {{ opacity: 0; animation: fi 2s ease forwards; }}
+  @keyframes fi {{ to {{ opacity: 1; }} }}
+"""
     return f"""
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1280 560" width="1280" height="560" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-labelledby="t d">
 <title id="t">Rutgers Chinese Finance Club · 罗格斯华人金融社团</title>
-<desc id="d">Bridging Cultures, Advancing Careers. Founding cohort, Fall 2026.</desc>
-<style>{css}</style>
+<desc id="d">Bridging Western finance and Chinese markets. RCFC, Fall 2026.</desc>
+<style>{css(extra)}</style>
 <defs>
-  <clipPath id="frame"><rect width="1280" height="560" rx="28"/></clipPath>
-  <clipPath id="disc"><circle cx="250" cy="270" r="146"/></clipPath>
-  <radialGradient id="glowR" cx="0.5" cy="0.5" r="0.5">
-    <stop offset="0" stop-color="#cc0033" stop-opacity="0.55"/>
-    <stop offset="0.45" stop-color="#cc0033" stop-opacity="0.16"/>
-    <stop offset="1" stop-color="#cc0033" stop-opacity="0"/>
-  </radialGradient>
-  <radialGradient id="glowG" cx="0.5" cy="0.5" r="0.5">
-    <stop offset="0" stop-color="#e2b45c" stop-opacity="0.22"/>
-    <stop offset="1" stop-color="#e2b45c" stop-opacity="0"/>
-  </radialGradient>
-  <radialGradient id="badgeGlow" cx="0.5" cy="0.5" r="0.5">
-    <stop offset="0.55" stop-color="#cc0033" stop-opacity="0.35"/>
-    <stop offset="1" stop-color="#cc0033" stop-opacity="0"/>
-  </radialGradient>
-  <linearGradient id="lineG" x1="0" x2="1">
-    <stop offset="0" stop-color="#cc0033" stop-opacity="0.2"/>
-    <stop offset="0.6" stop-color="#ff3d63"/>
-    <stop offset="1" stop-color="#e2b45c"/>
+  <clipPath id="frame"><rect width="{W}" height="{H}" rx="28"/></clipPath>
+  <clipPath id="disc"><circle cx="128" cy="112" r="34"/></clipPath>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="{SLATE}"/><stop offset="0.55" stop-color="{NIGHT2}"/><stop offset="1" stop-color="{NIGHT}"/>
   </linearGradient>
-  <linearGradient id="areaG" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="#cc0033" stop-opacity="0.22"/>
-    <stop offset="1" stop-color="#cc0033" stop-opacity="0"/>
-  </linearGradient>
-  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-    <path d="M40 0H0V40" fill="none" stroke="{t['grid']}" stroke-width="1"/>
-  </pattern>
-  <radialGradient id="gridFade" cx="0.55" cy="0.4" r="0.75">
-    <stop offset="0" stop-color="#fff" stop-opacity="1"/>
-    <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  <radialGradient id="gC" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="{CORAL}" stop-opacity="0.30"/><stop offset="1" stop-color="{CORAL}" stop-opacity="0"/>
   </radialGradient>
-  <mask id="gridMask"><rect width="1280" height="560" fill="url(#gridFade)"/></mask>
+  <radialGradient id="gP" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="{PERI}" stop-opacity="0.20"/><stop offset="1" stop-color="{PERI}" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="ringFade" cx="{cx / W:.3f}" cy="{cy / H:.3f}" r="0.62">
+    <stop offset="0" stop-color="#fff"/><stop offset="0.7" stop-color="#fff" stop-opacity="0.6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  </radialGradient>
+  <mask id="rm"><rect width="{W}" height="{H}" fill="url(#ringFade)"/></mask>
+  <linearGradient id="arcG" gradientUnits="userSpaceOnUse" x1="{ax}" y1="0" x2="{bx}" y2="0">
+    <stop offset="0" stop-color="{PERI}"/><stop offset="1" stop-color="{CORAL}"/>
+  </linearGradient>
+  <radialGradient id="comet" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0" stop-color="#fff"/><stop offset="0.35" stop-color="{CORAL_SOFT}" stop-opacity="0.8"/><stop offset="1" stop-color="{CORAL}" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="veil" x1="0" x2="1">
+    <stop offset="0" stop-color="{NIGHT2}" stop-opacity="0.92"/><stop offset="0.48" stop-color="{NIGHT2}" stop-opacity="0.55"/><stop offset="0.62" stop-color="{NIGHT2}" stop-opacity="0"/>
+  </linearGradient>
 </defs>
 <g clip-path="url(#frame)">
-  <rect width="1280" height="560" fill="#060608"/>
-  <rect width="1280" height="560" fill="url(#grid)" mask="url(#gridMask)"/>
-  <g class="drift"><ellipse cx="1080" cy="80" rx="520" ry="360" fill="url(#glowR)"/></g>
-  <g class="drift2"><ellipse cx="160" cy="560" rx="420" ry="260" fill="url(#glowG)"/></g>
-  <g>{candles}</g>
-  <path d="{area}" fill="url(#areaG)"/>
-  <path d="{line}" fill="none" stroke="url(#lineG)" stroke-opacity="0.35" stroke-width="2.5" stroke-linejoin="round"/>
-  <path d="{line}" fill="none" stroke="url(#lineG)" stroke-width="2.5" stroke-linejoin="round" class="draw"/>
-  <circle cx="1280" cy="296" r="5" fill="#e2b45c"/>
+  <rect width="{W}" height="{H}" fill="url(#bg)"/>
+  <g class="glowA"><ellipse cx="1060" cy="180" rx="420" ry="300" fill="url(#gC)"/></g>
+  <ellipse cx="760" cy="560" rx="460" ry="220" fill="url(#gP)"/>
 
-  <!-- badge -->
-  <circle cx="250" cy="270" r="230" fill="url(#badgeGlow)"/>
-  <circle cx="250" cy="270" r="182" fill="none" stroke="rgba(255,255,255,0.10)"/>
-  <g class="spin"><circle cx="250" cy="270" r="166" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="1.5" stroke-dasharray="2 10"/>
-    <circle cx="250" cy="104" r="4" fill="#ff3d63"/></g>
-  <image x="104" y="124" width="292" height="292" clip-path="url(#disc)" href="data:image/png;base64,{logo}" xlink:href="data:image/png;base64,{logo}"/>
-  <circle cx="250" cy="270" r="146" fill="none" stroke="rgba(255,255,255,0.14)"/>
+  <g mask="url(#rm)" class="fadeIn">
+    <g class="breathe"><g class="turn" fill="none" stroke="rgba(246,243,238,0.11)" stroke-width="1">{ring_svg}</g></g>
+    <path d="{hi}" fill="none" stroke="{CORAL}" stroke-opacity="0.55" stroke-width="1.4" stroke-linecap="round" class="orbit"/>
+  </g>
+  <rect width="{W}" height="{H}" fill="url(#veil)"/>
 
-  <!-- copy -->
+  <!-- the bridge: New Brunswick to Shanghai -->
+  <path d="{arc}" fill="none" stroke="rgba(246,243,238,0.16)" stroke-width="1" stroke-dasharray="2 7"/>
+  <path d="{arc}" fill="none" stroke="url(#arcG)" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="760" stroke-dashoffset="760" class="dr" style="animation-delay:.9s; animation-duration:2.8s"/>
+  <circle r="14" fill="url(#comet)" opacity="0">
+    <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="4.2s" begin="3s" repeatCount="indefinite"/>
+    <animateMotion dur="4.2s" begin="3s" repeatCount="indefinite" path="{arc}" keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines="0.45 0 0.25 1"/>
+  </circle>
   <g>
-    <rect x="470" y="98" width="500" height="40" rx="20" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.14)"/>
-    <circle cx="494" cy="118" r="5" fill="#ff3d63" class="pulse"/>
-    <text x="512" y="124" class="mono" font-size="16" letter-spacing="2.4" fill="#e2b45c">FOUNDING COHORT · FALL 2026</text>
-    <text x="944" y="124" text-anchor="end" class="cjk" font-size="16" letter-spacing="1" fill="#c3c3cd">创始成员</text>
+    <circle cx="{ax}" cy="{ay}" r="5" fill="none" stroke="{PERI}" class="ping"/>
+    <circle cx="{ax}" cy="{ay}" r="4.5" fill="{PERI}"/>
+    <circle cx="{bx}" cy="{by}" r="5" fill="none" stroke="{CORAL}" class="ping" style="animation-delay:1.6s"/>
+    <circle cx="{bx}" cy="{by}" r="4.5" fill="{CORAL}"/>
   </g>
-  <text x="466" y="222" class="sans" font-size="72" font-weight="700" letter-spacing="-2" fill="#f4f4f6">Rutgers Chinese</text>
-  <text x="466" y="302" class="sans" font-size="72" font-weight="700" letter-spacing="-2" fill="#f4f4f6">Finance Club<tspan fill="#ff3d63">.</tspan></text>
-  <text x="470" y="358" class="cjk" font-size="34" font-weight="500" letter-spacing="8" fill="#c3c3cd">罗格斯华人金融社团</text>
-  <g>
-    <rect x="470" y="388" width="36" height="2" fill="#cc0033"/>
-    <text x="520" y="396" class="sans" font-size="22" fill="#8a8a97">Bridging Cultures, Advancing Careers</text>
-    <text x="520" y="430" class="cjk" font-size="19" letter-spacing="3" fill="#7a7a86">跨越文化 · 驱动未来</text>
+  <g class="rv" {delay(0, 1.4)}>
+    <text x="{ax}" y="{ay + 36}" text-anchor="middle" class="mono" font-size="13" letter-spacing="3" fill="{IVORY}" fill-opacity="0.85">NEW BRUNSWICK</text>
+    <text x="{ax}" y="{ay + 58}" text-anchor="middle" class="mono" font-size="11" letter-spacing="1.5" fill="{IVORY}" fill-opacity="0.45">40.49°N  74.45°W</text>
+    <text x="{bx}" y="{by + 36}" text-anchor="middle" class="mono" font-size="13" letter-spacing="3" fill="{IVORY}" fill-opacity="0.85">SHANGHAI</text>
+    <text x="{bx}" y="{by + 58}" text-anchor="middle" class="mono" font-size="11" letter-spacing="1.5" fill="{IVORY}" fill-opacity="0.45">31.23°N  121.47°E</text>
   </g>
-  <text x="1236" y="62" text-anchor="end" class="mono" font-size="14" letter-spacing="3" fill="#8a8a97">EST. 2026</text>
-  <rect x="0.5" y="0.5" width="1279" height="559" rx="27.5" fill="none" stroke="rgba(255,255,255,0.10)"/>
+
+  <!-- identity -->
+  <g class="rv" {delay(0, 0.05)}>
+    <circle cx="128" cy="112" r="35" fill="{NIGHT}" stroke="rgba(246,243,238,0.18)"/>
+    <image x="91" y="75" width="74" height="74" clip-path="url(#disc)" href="data:image/png;base64,{logo}" xlink:href="data:image/png;base64,{logo}"/>
+    <text x="184" y="108" class="sans" font-size="21" font-weight="700" letter-spacing="1" fill="{IVORY}">RCFC <tspan font-weight="300">F2026</tspan></text>
+    <text x="185" y="132" class="sans" font-size="11" letter-spacing="4.4" fill="{IVORY}" fill-opacity="0.6">RUTGERS CHINESE FINANCE CLUB</text>
+  </g>
+
+  <text class="serif rv" x="92" y="262" font-size="70" letter-spacing="-1" fill="{IVORY}" {delay(1, 0.05)}>Rutgers Chinese</text>
+  <text class="serif rv" x="92" y="342" font-size="70" letter-spacing="-1" fill="{IVORY}" {delay(2, 0.05)}>Finance Club<tspan fill="{CORAL}">.</tspan></text>
+  <text class="cjks rv" x="96" y="398" font-size="28" letter-spacing="10" fill="{IVORY}" fill-opacity="0.72" {delay(3, 0.05)}>罗格斯华人金融社团</text>
+  <path d="M96 440 H160" stroke="{CORAL}" stroke-width="2" stroke-dasharray="64" stroke-dashoffset="64" class="dr" style="animation-delay:.7s"/>
+  <text class="sans rv" x="96" y="484" font-size="22" fill="{IVORY}" fill-opacity="0.86" {delay(4, 0.05)}>Bridging Western finance and Chinese markets.</text>
+  <text class="cjk rv" x="96" y="518" font-size="17" letter-spacing="3" fill="{IVORY}" fill-opacity="0.5" {delay(5, 0.05)}>连接西方金融与中国市场</text>
+
+  <rect x="0.5" y="0.5" width="{W - 1}" height="{H - 1}" rx="27.5" fill="none" stroke="rgba(246,243,238,0.10)"/>
 </g>
 </svg>"""
 
 
 # --------------------------------------------------------------------------- ticker
 TOPICS = [
-    ("Equity Research", "股票研究"), ("Investment Banking", "投资银行"),
-    ("Bloomberg Terminal", "彭博终端"), ("China A-Shares", "中国 A 股"),
-    ("Private Equity", "私募股权"), ("Quantitative Finance", "量化金融"),
-    ("Cross-Border M&A", "跨境并购"), ("ESG", "ESG"), ("Venture Capital", "风险投资"),
-    ("Risk Management", "风险管理"),
+    ("Chinese Financial Systems", "中国金融体系"), ("A-Shares &amp; Hong Kong", "A股与港股"),
+    ("Chinese AI Models", "国产大模型"), ("FinTech", "金融科技"), ("Supply Chains", "供应链"),
+    ("Cross-Border Investment", "跨境投资"), ("Policy &amp; Regulation", "政策与监管"),
+    ("Equity Research", "股票研究"), ("Financial Engineering", "金融工程"),
+    ("Exchange Programs", "交换项目"),
 ]
 
 
-def est(text, size, latin=0.58):
-    w = 0
-    for ch in text:
-        w += size * (1.0 if ord(ch) > 0x2E80 else latin)
-    return w
-
-
 def ticker():
-    size, zsize = 20, 17
+    size, zsize, H = 18, 15, 60
     x, items = 0, []
-    arrows = ["▲", "▲", "▼", "▲", "▲", "▼", "▲", "▲", "▼", "▲"]
-    for (en, zh), arrow in zip(TOPICS, arrows):
-        color = "#ff3d63" if arrow == "▲" else "#8a8a97"
-        en_w = est(en, size, 0.6)
-        zh_w = est(zh, zsize) if zh != en else 0
+    for en, zh in TOPICS:
+        plain = en.replace("&amp;", "&")
+        en_w = est(plain, size, 0.6)
+        zh_w = est(zh, zsize)
         items.append(
-            f'<text x="{x:.0f}" y="40" font-size="{size}" class="sans" fill="#f4f4f6" font-weight="600">{en.replace("&", "&amp;")}</text>'
-            + (f'<text x="{x + en_w + 14:.0f}" y="40" font-size="{zsize}" class="cjk" fill="#8a8a97">{zh}</text>' if zh_w else "")
-            + f'<text x="{x + en_w + (zh_w + 28 if zh_w else 14):.0f}" y="39" font-size="12" class="sans" fill="{color}">{arrow}</text>'
+            f'<text x="{x:.0f}" y="37" font-size="{size}" class="serif" fill="{IVORY}">{en}</text>'
+            f'<text x="{x + en_w + 12:.0f}" y="36" font-size="{zsize}" class="cjk" fill="{IVORY}" fill-opacity="0.5">{zh}</text>'
+            f'<rect x="{x + en_w + zh_w + 40:.0f}" y="27" width="6" height="6" transform="rotate(45 {x + en_w + zh_w + 43:.0f} 30)" fill="{CORAL}"/>'
         )
-        x += en_w + (zh_w + 28 if zh_w else 14) + 64
+        x += en_w + zh_w + 12 + 64
     period = round(x)
     row = "".join(items)
-    dur = period / 55
-    css = base_style(THEMES["dark"], f"""
-  .run {{ animation: run {dur:.1f}s linear infinite; }}
+    extra = f"""
+  .run {{ animation: run {period / 38:.1f}s linear infinite; }}
   @keyframes run {{ to {{ transform: translateX(-{period}px); }} }}
-""")
+"""
     return f"""
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 64" width="1280" height="64" role="img" aria-label="Focus areas: Equity Research, Investment Banking, Bloomberg Terminal, China A-Shares, Private Equity, Quantitative Finance, Cross-Border M&amp;A, ESG, Venture Capital, Risk Management">
-<style>{css}</style>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 {H}" width="1280" height="{H}" role="img" aria-label="Focus areas: Chinese financial systems, A-shares and Hong Kong, Chinese AI models, FinTech, supply chains, cross-border investment, policy and regulation, equity research, financial engineering, exchange programs">
+<style>{css(extra)}</style>
 <defs>
-  <clipPath id="c"><rect width="1280" height="64" rx="16"/></clipPath>
+  <clipPath id="c"><rect width="1280" height="{H}" rx="16"/></clipPath>
   <linearGradient id="fade" x1="0" x2="1">
-    <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.07" stop-color="#fff"/>
-    <stop offset="0.93" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.08" stop-color="#fff"/>
+    <stop offset="0.92" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
   </linearGradient>
-  <mask id="m"><rect width="1280" height="64" fill="url(#fade)"/></mask>
+  <mask id="m"><rect width="1280" height="{H}" fill="url(#fade)"/></mask>
 </defs>
 <g clip-path="url(#c)">
-  <rect width="1280" height="64" fill="#060608"/>
+  <rect width="1280" height="{H}" fill="{NIGHT}"/>
   <g mask="url(#m)"><g class="run">
-    <g transform="translate(24 0)">{row}</g>
-    <g transform="translate({24 + period} 0)">{row}</g>
+    <g transform="translate(32 0)">{row}</g>
+    <g transform="translate({32 + period} 0)">{row}</g>
   </g></g>
-  <rect x="0.5" y="0.5" width="1279" height="63" rx="15.5" fill="none" stroke="rgba(255,255,255,0.10)"/>
+  <rect x="0.5" y="0.5" width="1279" height="{H - 1}" rx="15.5" fill="none" stroke="rgba(246,243,238,0.10)"/>
 </g>
 </svg>"""
 
 
 # --------------------------------------------------------------------------- section header
 def header(num, en, zh, t):
-    css = base_style(t, """
-  .grow { transform-origin: 640px 0; animation: grow 1.6s cubic-bezier(0.22,1,0.28,1) forwards; transform: scaleX(0.2); }
+    extra = """
+  .grow { transform-box: fill-box; transform-origin: left center; transform: scaleX(0); animation: grow 1.8s cubic-bezier(0.16,1,0.3,1) .15s forwards; }
   @keyframes grow { to { transform: scaleX(1); } }
   @media (prefers-reduced-motion: reduce) { .grow { transform: none; } }
-""")
+"""
     return f"""
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 150" width="1280" height="150" role="img" aria-label="{en} · {zh}">
-<style>{css}</style>
-<defs><linearGradient id="h" x1="0" x2="1">
-  <stop offset="0" stop-color="{t['border2']}" stop-opacity="0"/><stop offset="0.5" stop-color="{t['border2']}"/>
-  <stop offset="1" stop-color="{t['border2']}" stop-opacity="0"/></linearGradient></defs>
-<g class="grow"><rect x="140" y="28" width="1000" height="1" fill="url(#h)"/></g>
-<rect x="633" y="21" width="14" height="14" transform="rotate(45 640 28)" fill="{t['canvas']}" stroke="{t['brand']}" stroke-width="1.5"/>
-<rect x="637" y="25" width="6" height="6" transform="rotate(45 640 28)" fill="{t['brand']}"/>
-<text x="640" y="72" text-anchor="middle" class="mono" font-size="15" letter-spacing="4" fill="{t['brand_ink']}">{num}</text>
-<text x="640" y="118" text-anchor="middle" class="sans" font-size="42" font-weight="700" letter-spacing="-1" fill="{t['ink']}">{en} <tspan class="cjk" font-size="30" font-weight="500" letter-spacing="2" fill="{t['subtle']}">{zh}</tspan></text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 130" width="1280" height="130" role="img" aria-label="{en} · {zh}">
+<style>{css(extra)}</style>
+<g class="rv">
+  <text x="0" y="40" class="mono" font-size="13" letter-spacing="4" fill="{t['coral']}">{num}</text>
+  <text x="0" y="96" class="serif" font-size="44" letter-spacing="-0.6" fill="{t['ink']}">{en}<tspan class="cjks" dx="18" font-size="24" letter-spacing="4" fill="{t['subtle']}">{zh}</tspan></text>
+</g>
+<rect x="0" y="122" width="1280" height="1" fill="{t['border2']}" class="grow"/>
+<rect x="0" y="121" width="56" height="3" fill="{t['coral']}" class="grow"/>
 </svg>"""
 
 
-# --------------------------------------------------------------------------- program cards
-ICONS = {
-    # 48x48 icons, stroked
-    "terminal": """<rect x="4" y="8" width="40" height="28" rx="4"/><path d="M16 42h16M24 36v6"/>
-      <path d="M12 28v-6M12 18v-2M20 28v-10M28 28v-4M28 20v-4M36 28v-12" stroke-linecap="round"/>""",
-    "mic": """<rect x="17" y="4" width="14" height="24" rx="7"/><path d="M10 22a14 14 0 0 0 28 0M24 36v8M16 44h16" stroke-linecap="round"/>""",
-    "network": """<circle cx="24" cy="10" r="5"/><circle cx="9" cy="36" r="5"/><circle cx="39" cy="36" r="5"/>
-      <circle cx="24" cy="27" r="3.5"/><path d="M24 15v8.5M21.2 29.2 13 33.5M26.8 29.2 35 33.5M13 33l8-21M35 33l-8-21" stroke-linecap="round"/>""",
-}
-
-PROGRAMS = [
-    ("01", "terminal", ["Skill Advancement", "Workshops"], "技能进阶工作坊",
-     ["Bloomberg Terminal, BMC and ESG", "certifications, and hands-on work", "with AI tools in finance."],
-     ["彭博终端、BMC 与 ESG 认证，", "以及 AI 工具在金融中的实操。"]),
-    ("02", "mic", ["Engage with", "Industry Leaders"], "对话行业领袖",
-     ["Frontline practitioners on how the", "work actually happens — markets,", "careers, and current trends."],
-     ["一线从业者讲真实的工作方式——", "市场、职业路径与当下趋势。"]),
-    ("03", "network", ["Build an Exclusive", "Community"], "构建精英社群",
-     ["Peers to job-hunt and study with,", "from across finance, economics,", "and business."],
-     ["一起求职和学习的同伴，", "来自金融、经济与商科。"]),
-]
+# --------------------------------------------------------------------------- mission & vision
+MISSION = ("Bridge Western finance with Chinese market dynamics, giving Rutgers Business School "
+           "students practical insight into China’s financial systems and tech sector to power "
+           "their global careers.")
+MISSION_ZH = "将西方金融与中国市场的动态相结合，为罗格斯商学院的学生提供关于中国金融体系和科技行业的实践性见解，助力他们在全球职业生涯中取得成功。"
+VISION = "Preparing Rutgers students for global finance through cross-border education, insight and skills practice."
+VISION_ZH = "通过跨境教育、专业洞见和技能实践，帮助罗格斯大学的学生为投身全球金融领域做好准备。"
 
 
-def programs(t):
-    W, H, gap = 400, 520, 40
+def mission(t):
+    W, gap, H, pad = 610, 60, 440, 44
+    inner = W - 2 * pad
     cards = []
-    for i, (num, icon, title, zh_title, desc, zh_desc) in enumerate(PROGRAMS):
+    for i, (label, zh, en_text, zh_text, accent) in enumerate([
+        ("MISSION", "使命", MISSION, MISSION_ZH, t["coral"]),
+        ("VISION", "愿景", VISION, VISION_ZH, t["peri"]),
+    ]):
         x = i * (W + gap)
-        tl = "".join(f'<tspan x="{x+36}" dy="{0 if j == 0 else 38}">{s}</tspan>' for j, s in enumerate(title))
-        dl = "".join(f'<tspan x="{x+36}" dy="{0 if j == 0 else 30}">{s}</tspan>' for j, s in enumerate(desc))
-        zl = "".join(f'<tspan x="{x+36}" dy="{0 if j == 0 else 28}">{s}</tspan>' for j, s in enumerate(zh_desc))
+        en_lines = wrap(en_text, 25, inner, 0.5)
+        zh_lines = wrap(zh_text, 16, inner - 10)
+        en_y = 150
+        zh_y = en_y + 38 * (len(en_lines) - 1) + 56
         cards.append(f"""
-  <g>
-    <rect x="{x+0.5}" y="0.5" width="{W-1}" height="{H-1}" rx="22" fill="{t['surface']}" stroke="{t['border']}"/>
-    <rect x="{x+36}" y="0" width="120" height="2" fill="url(#accent)" class="sweep"/>
-    <rect x="{x+36}" y="40" width="72" height="72" rx="16" fill="{t['icon_bg']}" stroke="{t['border']}"/>
-    <g transform="translate({x+48} 52)" fill="none" stroke="{t['brand_ink']}" stroke-width="2.2" stroke-linejoin="round">{ICONS[icon]}</g>
-    <text x="{x+W-36}" y="68" text-anchor="end" class="mono" font-size="15" letter-spacing="3" fill="{t['subtle']}">{num}</text>
-    <text y="168" class="sans" font-size="29" font-weight="700" letter-spacing="-0.6" fill="{t['ink']}">{tl}</text>
-    <text x="{x+36}" y="246" class="cjk" font-size="21" font-weight="500" letter-spacing="2" fill="{t['brand_ink']}">{zh_title}</text>
-    <rect x="{x+36}" y="270" width="{W-72}" height="1" fill="{t['border']}"/>
-    <text y="314" class="sans" font-size="19" fill="{t['muted']}">{dl}</text>
-    <text y="430" class="cjk" font-size="17" fill="{t['subtle']}">{zl}</text>
+  <g class="rv" {delay(i, 0.05, 0.18)}>
+    <rect x="{x + 0.5}" y="0.5" width="{W - 1}" height="{H - 1}" rx="20" fill="{t['card']}" stroke="{t['border']}"/>
+    <path d="{contour_rings(x + W - 40, 40, 1, 150, 0, seed=i)[0]}" fill="none" stroke="{t['contour']}"/>
+    <path d="{contour_rings(x + W - 40, 40, 1, 110, 0, seed=i + 1)[0]}" fill="none" stroke="{t['contour']}"/>
+    <path d="{contour_rings(x + W - 40, 40, 1, 70, 0, seed=i + 2)[0]}" fill="none" stroke="{t['contour']}"/>
+    <rect x="{x + pad}" y="44" width="10" height="10" transform="rotate(45 {x + pad + 5} 49)" fill="{accent}"/>
+    <text x="{x + pad + 26}" y="54" class="mono" font-size="13" letter-spacing="4" fill="{accent}">{label}</text>
+    <text x="{x + pad + 26 + est(label, 13, 0.62) + 4 * len(label) + 10:.0f}" y="54" class="cjks" font-size="15" letter-spacing="3" fill="{t['subtle']}">{zh}</text>
+    <path d="M{x + pad} 92 H{x + W - pad}" stroke="{t['border']}"/>
+    <path d="M{x + pad} 92 H{x + pad + 120}" stroke="{accent}" stroke-width="1.5" stroke-dasharray="120" stroke-dashoffset="120" class="dr" style="animation-delay:{0.5 + i * 0.18:.2f}s"/>
+    <text y="{en_y}" class="serif" font-size="25" fill="{t['ink']}">{tspans(en_lines, x + pad, 38)}</text>
+    <text y="{zh_y}" class="cjk" font-size="16" fill="{t['subtle']}">{tspans(zh_lines, x + pad, 28)}</text>
   </g>""")
-    css = base_style(t, """
-  .card { opacity: 0; animation: up 1s cubic-bezier(0.22,1,0.28,1) forwards; }
-  .c0 { animation-delay: .05s; } .c1 { animation-delay: .2s; } .c2 { animation-delay: .35s; }
-  @keyframes up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-  .sweep { animation: sweep 6s ease-in-out infinite; }
-  @keyframes sweep { 0%,100% { transform: translateX(0); } 50% { transform: translateX(208px); } }
-  @media (prefers-reduced-motion: reduce) { .card { opacity: 1; } }
-""")
     return f"""
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 520" width="1280" height="520" role="img" aria-label="Programs: Skill Advancement Workshops; Engage with Industry Leaders; Build an Exclusive Community">
-<style>{css}</style>
-<defs><linearGradient id="accent" x1="0" x2="1">
-  <stop offset="0" stop-color="#cc0033" stop-opacity="0"/><stop offset="0.5" stop-color="#ff3d63"/>
-  <stop offset="1" stop-color="#cc0033" stop-opacity="0"/></linearGradient></defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 {H}" width="1280" height="{H}" role="img" aria-label="Mission: {esc(MISSION)} Vision: {esc(VISION)}">
+<style>{css()}</style>
 {''.join(cards)}
 </svg>"""
 
 
-# --------------------------------------------------------------------------- facts
-FACTS = [
-    ("users", "Open to all", ["All Rutgers students", "面向所有罗格斯学生"]),
-    ("spark", "No prerequisites", ["No finance background required", "无需金融背景"]),
-    ("lang", "English · 中文", ["Content in both languages", "中英双语内容"]),
-    ("flag", "Fall 2026", ["Founding cohort", "创始成员招募中"]),
-]
-FACT_ICONS = {
-    "users": '<circle cx="12" cy="9" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/><path d="M17 4.6a4 4 0 0 1 0 8M20 14.5c2.4 1 4 3.2 4 6.5" stroke-linecap="round"/>',
-    "spark": '<path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M19 5l-4 4M9 15l-4 4" stroke-linecap="round"/>',
-    "lang": '<rect x="2" y="4" width="20" height="16" rx="3"/><path d="M6 15l3-7 3 7M7 13h4M15 9h5M17.5 9v6M15 15h5" stroke-linecap="round"/>',
-    "flag": '<path d="M5 22V3M5 4h12l-2 4 2 4H5" stroke-linecap="round"/>',
+# --------------------------------------------------------------------------- pillars
+ICONS = {
+    # 40x40 stroked icons
+    "chip": '<rect x="9" y="9" width="22" height="22" rx="4"/><rect x="15" y="15" width="10" height="10" rx="1.5"/>'
+            '<path d="M15 4v5M20 4v5M25 4v5M15 31v5M20 31v5M25 31v5M4 15h5M4 20h5M4 25h5M31 15h5M31 20h5M31 25h5"/>',
+    "nodes": '<circle cx="20" cy="9" r="4.5"/><circle cx="8" cy="31" r="4.5"/><circle cx="32" cy="31" r="4.5"/>'
+             '<path d="M17.8 13 10.2 27M22.2 13l7.6 14M12.5 31h15"/>',
+    "chart": '<path d="M5 35h30"/><path d="M8 29l8-9 6 5 11-13"/><path d="M27 12h6v6"/>',
 }
 
+PILLARS = [
+    ("chip", "peri", "FinTech &amp; AI", "金融科技",
+     [("Chinese AI Workshop", "国产大模型工坊"), ("Financial Engineering", "金融工程"),
+      ("AI tools &amp; benefits for students", "学生 AI 福利与经验")]),
+    ("nodes", "stone", "Networking", "交流会",
+     [("Alumni Stories", "校友分享"), ("Company Tours", "行业参观"),
+      ("Analysis by Industry Experts", "行业专家分享")]),
+    ("chart", "rose", "Practice", "实践",
+     [("Equity Research", "股票分析"), ("Certificates", "证书"),
+      ("Exchange Programs", "交换项目")]),
+]
 
-def facts(t):
-    W, gap, H = 290, 40, 200
-    tiles = []
-    for i, (icon, big, sub) in enumerate(FACTS):
+
+def pillars(t):
+    W, gap, H, pad = 400, 40, 470, 36
+    cards = []
+    for i, (icon, key, title, zh, items) in enumerate(PILLARS):
         x = i * (W + gap)
-        big_cls = "sans" if "中" not in big else "sans"
-        tiles.append(f"""
-  <g>
-    <rect x="{x+0.5}" y="0.5" width="{W-1}" height="{H-1}" rx="20" fill="{t['surface2']}" stroke="{t['border']}"/>
-    <g transform="translate({x+28} 28)" fill="none" stroke="{t['brand_ink']}" stroke-width="1.8" stroke-linejoin="round">{FACT_ICONS[icon]}</g>
-    <text x="{x+28}" y="106" class="{big_cls}" font-size="30" font-weight="700" letter-spacing="-0.6" fill="{t['ink']}">{big}</text>
-    <text x="{x+28}" y="144" class="sans" font-size="17" fill="{t['muted']}">{sub[0]}</text>
-    <text x="{x+28}" y="172" class="cjk" font-size="15" fill="{t['subtle']}">{sub[1]}</text>
+        accent = t[key]
+        rows = []
+        for j, (en, izh) in enumerate(items):
+            y = 236 + j * 70
+            rows.append(
+                f'<path d="M{x + pad} {y - 30} H{x + W - pad}" stroke="{t["border"]}"/>'
+                f'<text x="{x + pad}" y="{y}" class="sans" font-size="18" fill="{t["ink"]}">{en}</text>'
+                f'<text x="{x + pad}" y="{y + 24}" class="cjk" font-size="14" fill="{t["subtle"]}">{izh}</text>'
+                f'<text x="{x + W - pad}" y="{y}" text-anchor="end" class="mono" font-size="12" fill="{accent}">0{j + 1}</text>'
+            )
+        cards.append(f"""
+  <g class="rv" {delay(i, 0.05, 0.15)}>
+    <rect x="{x + 0.5}" y="0.5" width="{W - 1}" height="{H - 1}" rx="20" fill="{t['card']}" stroke="{t['border']}"/>
+    <rect x="{x + pad}" y="0" width="64" height="3" fill="{accent}"/>
+    <g transform="translate({x + pad} 44)" fill="none" stroke="{accent}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <g stroke-dasharray="220" stroke-dashoffset="220" class="dr" style="animation-delay:{0.35 + i * 0.15:.2f}s; animation-duration:2.6s">{ICONS[icon]}</g>
+    </g>
+    <text x="{x + W - pad}" y="66" text-anchor="end" class="mono" font-size="13" letter-spacing="3" fill="{t['subtle']}">0{i + 1}</text>
+    <text x="{x + pad}" y="138" class="serif" font-size="34" letter-spacing="-0.4" fill="{t['ink']}">{title}</text>
+    <text x="{x + pad}" y="168" class="cjks" font-size="17" letter-spacing="3" fill="{accent}">{zh}</text>
+    {''.join(rows)}
   </g>""")
-    css = base_style(t, """
-  .tile { opacity: 0; animation: up .9s cubic-bezier(0.22,1,0.28,1) forwards; }
-  .t0 { animation-delay: .05s; } .t1 { animation-delay: .15s; } .t2 { animation-delay: .25s; } .t3 { animation-delay: .35s; }
-  @keyframes up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { .tile { opacity: 1; } }
-""")
     return f"""
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 200" width="1280" height="200" role="img" aria-label="Open to all Rutgers students. No finance background required. Content in English and Chinese. Founding cohort, Fall 2026.">
-<style>{css}</style>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 {H}" width="1280" height="{H}" role="img" aria-label="What we do. FinTech and AI: Chinese AI workshop, financial engineering, AI tools for students. Networking: alumni stories, company tours, analysis by industry experts. Practice: equity research, certificates, exchange programs.">
+<style>{css()}</style>
+{''.join(cards)}
+</svg>"""
+
+
+# --------------------------------------------------------------------------- why
+WHY = [
+    ("China-focused", "聚焦中国", ["Chinese finance, tech and", "regulation, a gap at RBS today"]),
+    ("East ↔ West", "连接东西方", ["Connecting both sides,", "not one market"]),
+    ("English · 中文", "中英双语", ["Programming in", "both languages"]),
+    ("Open to all", "面向全体", ["Any Rutgers student,", "no finance background needed"]),
+]
+
+
+def why(t):
+    W, gap, H, pad = 290, 40, 210, 28
+    tiles = []
+    for i, (big, zh, sub) in enumerate(WHY):
+        x = i * (W + gap)
+        tiles.append(f"""
+  <g class="rv" {delay(i, 0.05, 0.1)}>
+    <rect x="{x + 0.5}" y="0.5" width="{W - 1}" height="{H - 1}" rx="18" fill="{t['card2']}" stroke="{t['border']}"/>
+    <text x="{x + pad}" y="46" class="cjks" font-size="14" letter-spacing="3" fill="{t['coral']}">{zh}</text>
+    <text x="{x + pad}" y="100" class="serif" font-size="31" letter-spacing="-0.4" fill="{t['ink']}">{big}</text>
+    <path d="M{x + pad} 126 H{x + pad + 28}" stroke="{t['coral']}" stroke-width="1.5"/>
+    <text y="160" class="sans" font-size="15.5" fill="{t['muted']}">{tspans(sub, x + pad, 22)}</text>
+  </g>""")
+    return f"""
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 {H}" width="1280" height="{H}" role="img" aria-label="Why RCFC: China-focused, covering Chinese finance, tech and regulation, a gap at RBS today. East and West: connecting both sides. Bilingual programming in English and Chinese. Open to all Rutgers students, no finance background needed.">
+<style>{css()}</style>
 {''.join(tiles)}
 </svg>"""
 
@@ -353,84 +437,75 @@ def facts(t):
 def button(label, zh, width, t, primary=False, icon=None):
     H = 60
     if primary:
-        bg = f'<rect x="0" y="0" width="{width}" height="{H}" rx="30" fill="url(#bg)"/>'
-        ink, sub = "#ffffff", "rgba(255,255,255,0.78)"
-        stroke = '<rect x="0.5" y="0.5" width="{w}" height="59" rx="29.5" fill="none" stroke="rgba(255,255,255,0.22)"/>'.format(w=width - 1)
-        shine = f'<rect x="-120" y="0" width="80" height="{H}" fill="url(#shine)" class="shine"/>'
+        body = (f'<rect width="{width}" height="{H}" rx="30" fill="url(#bg)"/>'
+                f'<rect x="-140" width="90" height="{H}" fill="url(#shine)" class="shine"/>')
+        ring = f'<rect x="0.5" y="0.5" width="{width - 1}" height="{H - 1}" rx="29.5" fill="none" stroke="rgba(255,255,255,0.25)"/>'
+        ink, sub = "#ffffff", "rgba(255,255,255,0.75)"
     else:
-        bg = f'<rect x="0.5" y="0.5" width="{width-1}" height="{H-1}" rx="29.5" fill="{t["surface"]}" stroke="{t["border2"]}"/>'
-        ink, sub = t["ink"], t["subtle"]
-        stroke, shine = "", ""
-    icon_svg = ""
-    tx = 28
-    if icon == "globe":
-        icon_svg = f'<g transform="translate(26 19)" fill="none" stroke="{ink}" stroke-width="1.7"><circle cx="11" cy="11" r="10"/><path d="M1 11h20M11 1c3 3 4 6.5 4 10s-1 7-4 10c-3-3-4-6.5-4-10s1-7 4-10z"/></g>'
-        tx = 60
-    elif icon == "in":
-        icon_svg = (f'<g transform="translate(26 19)"><rect width="22" height="22" rx="5" fill="{ink}"/>'
-                    f'<text x="11" y="17" text-anchor="middle" class="sans" font-size="14" font-weight="800" fill="{t["surface"] if not primary else "#cc0033"}">in</text></g>')
-        tx = 60
-    elif icon == "plus":
-        icon_svg = f'<g transform="translate(26 19)" fill="none" stroke="{ink}" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="10"/><path d="M11 6v10M6 11h10"/></g>'
-        tx = 60
-    css = base_style(t, """
-  .shine { animation: shine 4.5s ease-in-out infinite; }
-  @keyframes shine { 0%, 60% { transform: translateX(0); } 100% { transform: translateX(520px); } }
-""")
+        body = f'<rect x="0.5" y="0.5" width="{width - 1}" height="{H - 1}" rx="29.5" fill="{t["card"]}" stroke="{t["border2"]}"/>'
+        ring, ink, sub = "", t["ink"], t["subtle"]
+    icons = {
+        "plus": f'<g transform="translate(26 19)" fill="none" stroke="{ink}" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="10"/><path d="M11 6.5v9M6.5 11h9"/></g>',
+        "globe": f'<g transform="translate(26 19)" fill="none" stroke="{ink}" stroke-width="1.6"><circle cx="11" cy="11" r="10"/><path d="M1 11h20M11 1c3 3 4 6.5 4 10s-1 7-4 10c-3-3-4-6.5-4-10s1-7 4-10z"/></g>',
+        "in": (f'<g transform="translate(26 19)"><rect width="22" height="22" rx="5" fill="{ink}"/>'
+               f'<text x="11" y="16.5" text-anchor="middle" class="sans" font-size="13" font-weight="800" fill="{t["card"]}">in</text></g>'),
+    }
+    extra = """
+  .shine { animation: shine 5s cubic-bezier(0.65,0,0.35,1) 1s infinite; }
+  @keyframes shine { 0% { transform: translateX(0); } 45%, 100% { transform: translateX(560px); } }
+"""
     return f"""
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {H}" width="{width}" height="{H}" role="img" aria-label="{label}">
-<style>{css}</style>
+<style>{css(extra)}</style>
 <defs>
-  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e30a3d"/><stop offset="1" stop-color="#b3002d"/></linearGradient>
-  <linearGradient id="shine" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6a5f"/><stop offset="1" stop-color="#e2453f"/></linearGradient>
+  <linearGradient id="shine" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
   <clipPath id="pill"><rect width="{width}" height="{H}" rx="30"/></clipPath>
 </defs>
-<g clip-path="url(#pill)">{bg}{shine}</g>{stroke}
-{icon_svg}
-<text x="{tx}" y="37" class="sans" font-size="19" font-weight="600" letter-spacing="-0.2" fill="{ink}">{label} <tspan class="cjk" font-size="15" font-weight="400" fill="{sub}">{zh}</tspan></text>
-<text x="{width-30}" y="37" text-anchor="end" class="sans" font-size="19" fill="{ink}">→</text>
+<g clip-path="url(#pill)">{body}</g>{ring}
+{icons[icon]}
+<text x="60" y="37" class="sans" font-size="18" font-weight="600" fill="{ink}">{label} <tspan class="cjk" font-size="14" font-weight="400" fill="{sub}">{zh}</tspan></text>
+<text x="{width - 30}" y="37" text-anchor="end" class="sans" font-size="18" fill="{ink}">→</text>
 </svg>"""
 
 
 # --------------------------------------------------------------------------- footer
 def footer(t):
-    pts = [(0, 120), (80, 112), (150, 118), (230, 100), (300, 106), (380, 88), (450, 96),
-           (520, 76), (600, 84), (680, 64), (760, 72), (840, 52), (920, 60), (1000, 42),
-           (1080, 50), (1160, 30), (1280, 24)]
-    line = "M" + " L".join(f"{x},{y}" for x, y in pts)
-    css = base_style(t, """
-  .draw { stroke-dasharray: 1400; stroke-dashoffset: 1400; animation: draw 3s cubic-bezier(0.22,1,0.28,1) forwards; }
-  @keyframes draw { to { stroke-dashoffset: 0; } }
-  .blink { animation: blink 2.4s ease-in-out infinite; }
-  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .2; } }
-  @media (prefers-reduced-motion: reduce) { .draw { stroke-dashoffset: 0; } }
-""")
+    W, H = 1280, 220
+    rings = contour_rings(640, 300, 14, 120, 20, seed=2.1)
+    ring_svg = "".join(f'<path d="{d}"/>' for d in rings)
+    extra = """
+  .drift { animation: drift 30s ease-in-out infinite alternate; }
+  @keyframes drift { from { transform: translateX(-24px); } to { transform: translateX(24px); } }
+"""
     return f"""
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 300" width="1280" height="300" role="img" aria-label="Bridging Cultures, Advancing Careers: Empowering Global Excellence in Finance.">
-<style>{css}</style>
-<defs><linearGradient id="l" x1="0" x2="1">
-  <stop offset="0" stop-color="{t['brand']}" stop-opacity="0"/><stop offset="0.5" stop-color="{t['brand_ink']}" stop-opacity="0.7"/>
-  <stop offset="1" stop-color="{t['gold']}"/></linearGradient></defs>
-<path d="{line}" fill="none" stroke="url(#l)" stroke-opacity="0.35" stroke-width="2"/>
-<path d="{line}" fill="none" stroke="url(#l)" stroke-width="2" class="draw"/>
-<circle cx="1276" cy="24" r="4" fill="{t['gold']}" class="blink"/>
-<text x="640" y="176" text-anchor="middle" class="sans" font-size="34" font-weight="700" letter-spacing="-0.8" fill="{t['ink']}">Bridging Cultures, Advancing Careers</text>
-<text x="640" y="214" text-anchor="middle" class="sans" font-size="19" fill="{t['muted']}">Empowering Global Excellence in Finance.</text>
-<text x="640" y="248" text-anchor="middle" class="cjk" font-size="17" letter-spacing="4" fill="{t['subtle']}">跨越文化 · 驱动未来</text>
-<text x="640" y="288" text-anchor="middle" class="mono" font-size="12" letter-spacing="3" fill="{t['subtle']}">© 2026 RUTGERS CHINESE FINANCE CLUB · <tspan class="cjk" letter-spacing="1">罗格斯华人金融社团</tspan></text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Rutgers Chinese Finance Club, RCFC F2026, New Brunswick, New Jersey.">
+<style>{css(extra)}</style>
+<defs>
+  <linearGradient id="fx" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.5" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <mask id="fm"><rect width="{W}" height="{H}" fill="url(#fx)"/></mask>
+</defs>
+<g mask="url(#fm)"><g class="drift" fill="none" stroke="{t['contour']}">{ring_svg}</g></g>
+<rect x="633" y="40" width="14" height="14" transform="rotate(45 640 47)" fill="none" stroke="{t['coral']}" stroke-width="1.5"/>
+<rect x="637" y="44" width="6" height="6" transform="rotate(45 640 47)" fill="{t['coral']}"/>
+<text x="640" y="116" text-anchor="middle" class="serif rv" font-size="30" fill="{t['ink']}">Rutgers Chinese Finance Club</text>
+<text x="640" y="150" text-anchor="middle" class="cjks rv" font-size="16" letter-spacing="8" fill="{t['subtle']}" style="animation-delay:.12s">罗格斯华人金融社团</text>
+<text x="640" y="196" text-anchor="middle" class="mono rv" font-size="12" letter-spacing="3" fill="{t['subtle']}" style="animation-delay:.24s">RCFC · F2026 · NEW BRUNSWICK, NJ</text>
 </svg>"""
 
 
 write("hero.svg", hero())
 write("ticker.svg", ticker())
 for name, t in THEMES.items():
-    write(f"h-programs-{name}.svg", header("01 · WHAT WE DO", "Programs &amp; Events", "项目与活动", t))
-    write(f"h-who-{name}.svg", header("02 · WHO IT'S FOR", "Built for Rutgers", "为罗格斯学生而建", t))
-    write(f"h-join-{name}.svg", header("03 · JOIN US", "Become a Member", "成为会员", t))
-    write(f"programs-{name}.svg", programs(t))
-    write(f"facts-{name}.svg", facts(t))
-    write(f"btn-join-{name}.svg", button("Become a Member", "成为会员", 340, t, primary=True, icon="plus"))
-    write(f"btn-site-{name}.svg", button("Visit Website", "官网", 260, t, icon="globe"))
+    write(f"h-mission-{name}.svg", header("01 — ABOUT", "Mission &amp; Vision", "使命与愿景", t))
+    write(f"h-pillars-{name}.svg", header("02 — WHAT WE DO", "Three Pillars", "三大板块", t))
+    write(f"h-why-{name}.svg", header("03 — WHY RCFC", "Why Us", "为什么选择我们", t))
+    write(f"h-join-{name}.svg", header("04 — JOIN", "Become a Member", "成为会员", t))
+    write(f"mission-{name}.svg", mission(t))
+    write(f"pillars-{name}.svg", pillars(t))
+    write(f"why-{name}.svg", why(t))
+    write(f"btn-join-{name}.svg", button("Become a Member", "成为会员", 330, t, primary=True, icon="plus"))
+    write(f"btn-site-{name}.svg", button("Website", "官网", 220, t, icon="globe"))
     write(f"btn-linkedin-{name}.svg", button("LinkedIn", "领英", 220, t, icon="in"))
     write(f"footer-{name}.svg", footer(t))
-print("ok", sorted(p.name for p in OUT.iterdir()))
+print("ok", len(list(OUT.iterdir())), "files")
